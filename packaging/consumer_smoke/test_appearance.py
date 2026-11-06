@@ -31,6 +31,24 @@ class CollectorAppearanceTests(TestCase):
         self.assertContains(response, 'href="#general-settings"')
         self.assertContains(response, 'href="#api-access"')
 
+    def test_browser_submit_saves_shared_appearance(self):
+        self.client.force_login(self.superuser)
+        response = self.client.post(
+            reverse("log_collector:entity_manage", args=[self.hosting.slug]),
+            {
+                "save_settings": "",
+                "settings-display_name": "North Operations",
+                "settings-theme": "dark",
+                "settings-nginx_access_log_paths": "[]",
+                "settings-sync_cooldown_seconds": "5",
+                "settings-max_lines_per_sync": "5000",
+                "settings-retention_days": "90",
+            },
+        )
+        self.assertEqual(response.status_code, 302)
+        saved = LogCollectorSettings.for_entity(self.hosting)
+        self.assertEqual((saved.display_name, saved.theme), ("North Operations", "dark"))
+
     def test_superuser_theme_and_name_are_shared_with_viewer(self):
         self.client.force_login(self.superuser)
         url = reverse("log_collector:entity_manage", args=[self.hosting.slug])

@@ -9,6 +9,8 @@ description = "Django Nginx log collection, security monitoring, and remote coll
 readme = "README.md"
 requires-python = ">=3.12,<3.14"
 authors = [{name = "CodefilterPH | Euge"}]
+license = "MIT"
+license-files = ["LICENSE"]
 classifiers = [
     "Framework :: Django",
     "Programming Language :: Python :: 3.12",

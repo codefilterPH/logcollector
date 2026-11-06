@@ -45,6 +45,7 @@ jobs:
                       names = package.getnames()
               found = {Path(name).name for name in names if '/log_collector/docs/' in '/' + name}
               assert found == guides, (archive, found)
+              assert any(name.endswith('LICENSE') for name in names)
               assert any(name.endswith('log_collector/migrations/0004_app_appearance.py') for name in names)
               assert any(name.endswith('crowdsec_integration/migrations/0001_initial.py') for name in names)
           PY

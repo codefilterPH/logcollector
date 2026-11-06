@@ -648,7 +648,7 @@ def entity_manage(request, slug):
     )
     if entity.is_hosting:
         settings_form = HostingSettingsForm(
-            request.POST if request.POST.get("save_settings") else None,
+            request.POST if "save_settings" in request.POST else None,
             instance=LogCollectorSettings.for_entity(entity),
             prefix="settings",
         )
@@ -1116,7 +1116,9 @@ class GeolocationApi(EntityApiBase):
         locations = location_model.objects.select_related("user").order_by("-captured_at")
         query = request.GET.get("q", "").strip()
         if query:
-            locations = locations.filter(user__username__icontains=query)
+            locations = locations.filter(
+                **{f"user__{get_user_model().USERNAME_FIELD}__icontains": query}
+            )
         audit_event(request, LogCollectorAuditEvent.EventType.API_REQUEST, entity, resource="geolocation")
         if request.GET.get("export") == "csv":
             return csv_response(
@@ -1187,7 +1189,8 @@ class UserSessionsApi(EntityApiBase):
         query = request.GET.get("q", "").strip()
         if query:
             sessions = sessions.filter(
-                Q(user__username__icontains=query) | Q(ip__icontains=query)
+                Q(**{f"user__{get_user_model().USERNAME_FIELD}__icontains": query})
+                | Q(ip__icontains=query)
             )
         audit_event(request, LogCollectorAuditEvent.EventType.API_REQUEST, entity, resource="user-sessions")
         if request.GET.get("export") == "csv":
@@ -1659,7 +1662,7 @@ class UserSessionContainApi(EntityApiBase):
 
         try:
             with transaction.atomic():
-                locked_session = UserSession.objects.select_for_update().select_related(
+                locked_session = session_model.objects.select_for_update().select_related(
                     "user"
                 ).get(pk=session.pk)
                 target = get_user_model().objects.select_for_update().get(
@@ -1730,7 +1733,7 @@ class UserSessionContainApi(EntityApiBase):
                     block_id=block.pk,
                     nginx_state=block.nginx_state,
                 )
-        except UserSession.DoesNotExist:
+        except session_model.DoesNotExist:
             return Response({"detail": "The user session no longer exists."}, status=409)
         except Exception:
             logger.exception(

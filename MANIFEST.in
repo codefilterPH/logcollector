@@ -1,4 +1,5 @@
 include README.md
+include LICENSE
 prune log_collector/docs
 include log_collector/docs/installation.md
 include log_collector/docs/configuration.md

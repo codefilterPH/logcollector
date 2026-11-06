@@ -19,18 +19,21 @@ host's authenticated ASGI WebSocket application:
 from channels.auth import AuthMiddlewareStack
 from channels.routing import ProtocolTypeRouter, URLRouter
 from django.core.asgi import get_asgi_application
+
+django_asgi_app = get_asgi_application()
 from log_collector.routing import websocket_urlpatterns
 
 application = ProtocolTypeRouter({
-    "http": get_asgi_application(),
+    "http": django_asgi_app,
     "websocket": AuthMiddlewareStack(URLRouter(websocket_urlpatterns)),
 })
 ```
 
 The route is `/ws/log-collector/entities/<slug>/security/`. Its origin
-validator is part of the route. Set the host's `ALLOWED_HOSTS` correctly and
-configure `LOG_COLLECTOR_SECURITY_WEBSOCKET_ALLOWED_ORIGINS` when browser
-origins differ from the WebSocket host.
+validator is part of the route. Set the host's `ALLOWED_HOSTS` correctly.
+The browser Origin must match the WebSocket Host and port; when
+`LOG_COLLECTOR_SECURITY_WEBSOCKET_ALLOWED_ORIGINS` is set, that exact origin
+must also appear in the list.
 
 ## Celery
 

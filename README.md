@@ -23,3 +23,5 @@ package and are also available in the source repository:
 The app title defaults to **LOG Collector**. A Django superuser can set the
 displayed title and shared theme on the hosting entity Manage page. The developer
 credit is fixed in the application and cannot be edited through its settings.
+
+License: [MIT](LICENSE).
