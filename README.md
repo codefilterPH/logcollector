@@ -25,3 +25,5 @@ displayed title and shared theme on the hosting entity Manage page. The develope
 credit is fixed in the application and cannot be edited through its settings.
 
 License: [MIT](LICENSE).
+
+Release owner: [first-release account setup](https://github.com/codefilterPH/logcollector/blob/main/RELEASE_SETUP.md).
