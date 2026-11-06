@@ -4,7 +4,7 @@ LOG Collector supports Python 3.12–3.13 and Django 6.0.x. Use a virtual
 environment in the host Django project:
 
 ```shell
-python -m pip install 'logcollector[redis,asgi]'
+python -m pip install 'codefilterph-logcollector[redis,asgi]'
 ```
 
 Add the apps and mount the HTTP URLs:

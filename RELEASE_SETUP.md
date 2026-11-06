@@ -1,29 +1,16 @@
-# Release account setup for `logcollector`
+# Release account setup for `codefilterph-logcollector`
 
-Use this checklist to grant access for the first public release. The package
-source is committed locally; the GitHub repository and package-index projects
-have not been created. You do **not** need to send me passwords, recovery
-codes, or API tokens.
+Use this checklist for the first public release of `codefilterph-logcollector`.
+The public source repository is `codefilterPH/logcollector`; the installed
+Django apps remain `log_collector` and `crowdsec_integration`. PyPI rejected
+the earlier `logcollector` name as too similar to `log-collector`. Do not
+send passwords, recovery codes, or API tokens.
 
-## 1. Connect GitHub to Codex
+## 1. Confirm the GitHub repository
 
-- [ ] In this Codex chat, open the suggested **GitHub** plugin card. Choose
-  **Connect** or **Install**, then complete the GitHub authorization screen.
-- [ ] Authorize the GitHub account that can create repositories under
-  `codefilterPH`. If `codefilterPH` is an organization and GitHub asks for
-  organization approval, have an organization owner approve the connection.
-- [ ] Return to Codex and confirm that GitHub shows **Connected**. Selecting
-  “Connect GitHub plugin” in a chat question alone does not install it.
-
-**Stop after this step and reply “GitHub connected; please create the
-repository.”** I will check the connector's permissions, then create the
-**public** `codefilterPH/logcollector` repository and push the reviewed local
-source if it permits those actions. If it does not, I will tell you; use
-[GitHub's new repository page](https://github.com/new): choose owner
-`codefilterPH`, name `logcollector`, visibility **Public**, and do not add a
-generated README, license, or `.gitignore` because those files already exist
-locally. Tell me when the empty repository exists so I can arrange the push.
-Continue with Sections 2–5 once the GitHub repository exists.
+The [public source repository](https://github.com/codefilterPH/logcollector)
+and its protected `testpypi` and `pypi` environments already exist.
+Keep their reviewer and tag protection rules enabled.
 
 ## 2. Sign in to both package indexes
 
@@ -62,7 +49,7 @@ GitHub Actions Trusted Publisher. Enter these values exactly:
 
 | Field | Value |
 | --- | --- |
-| PyPI project name | `logcollector` |
+| PyPI project name | `codefilterph-logcollector` |
 | GitHub owner | `codefilterPH` |
 | Repository name | `logcollector` |
 | Workflow filename | `publish.yml` |
@@ -70,29 +57,25 @@ GitHub Actions Trusted Publisher. Enter these values exactly:
 
 - [ ] Save the publisher and confirm it appears in the pending publisher list.
 
-## 5. Register the production PyPI publisher
+## 5. Register production PyPI publisher
 
-Repeat the preceding step on **PyPI**, using the same project, owner,
-repository, and workflow values. Set **Environment name** to `pypi`.
+Repeat the preceding step on **PyPI**, using project name
+`codefilterph-logcollector`, GitHub owner `codefilterPH`, repository
+`logcollector`, workflow `publish.yml`, and environment `pypi`.
 
-- [ ] Save it and confirm it appears on PyPI as a pending publisher.
+- [ ] Save it and confirm it appears on the PyPI pending publisher list.
 
-TestPyPI and PyPI each need their **own** publisher registration. A pending
-publisher does not reserve `logcollector`; I will recheck the name just before
-the first upload. If it has been taken, stop before publishing and choose a
-new package name with me. PyPI's [pending publisher guide](https://docs.pypi.org/trusted-publishers/creating-a-project-through-oidc/)
-explains the first-release setup.
+TestPyPI and PyPI each need their own registration for the new
+distribution. The earlier `logcollector` registration on TestPyPI does
+not authorize `codefilterph-logcollector`. A pending publisher does not
+reserve a project name. See the [PyPI pending publisher guide](https://docs.pypi.org/trusted-publishers/creating-a-project-through-oidc/).
 
-## 6. Hand the release back to me
+## 6. Run the release
 
-Reply in this chat with: **“GitHub connected; repository and both environments
-ready; TestPyPI and PyPI publishers registered.”** Tell me if you created the
-GitHub repository yourself. I will verify the exact owner/repository/workflow/
-environment values, push the reviewed source, run the package checks, create
-the version tag, rehearse on TestPyPI, and inspect a clean install. Production
-publishing then runs through the `pypi` environment's approval gate. After the
-PyPI release is verified, I can switch the current host to a pinned package
-version and check its services.
+After both new pending publishers appear, run package checks, create
+the `v0.1.1` tag from reviewed source, and rehearse on TestPyPI. Inspect
+a clean install before running the same tag against PyPI. Production
+publishing requires approval at the `pypi` environment gate.
 
 Do not manually upload the wheel: it would bypass the reviewed workflow.
 Package versions cannot be overwritten after upload; a correction needs a
