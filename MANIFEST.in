@@ -1,0 +1,11 @@
+include README.md
+prune log_collector/docs
+include log_collector/docs/installation.md
+include log_collector/docs/configuration.md
+include log_collector/docs/api.md
+include log_collector/docs/operations-guide.md
+recursive-include log_collector/templates *.html
+recursive-include log_collector/static *.css
+prune log_collector/tests
+prune packaging
+global-exclude __pycache__ *.py[cod] *.sqlite3 *.db .env*

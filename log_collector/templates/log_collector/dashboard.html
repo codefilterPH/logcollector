@@ -1,0 +1,1544 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{ entity.name }} | {{ app_name }}</title>
+  <style>
+    :root {
+      --canvas:#f5f7f8;
+      --surface:#fff;
+      --surface-soft:#f8fafb;
+      --ink:#17242c;
+      --muted:#64757c;
+      --line:#dbe3e6;
+      --accent:#007a68;
+      --accent-strong:#005f51;
+      --blue:#0b6399;
+      --input-bg:#fff;
+      --table-head:#f8fafb;
+      --row-hover:#f2fbf8;
+      --overlay:rgba(23,36,44,.34);
+      --shadow:0 12px 32px rgba(19,39,47,.06);
+      --success:#12805c;
+      --success-bg:#e8f7ef;
+      --info:#2463ad;
+      --info-bg:#e9f1fb;
+      --warning:#9a5a00;
+      --warning-bg:#fff3d8;
+      --danger:#b4232f;
+      --danger-bg:#fde8ea;
+      --neutral-bg:#eef3f4;
+    }
+
+    body[data-theme="dark"] {
+      --canvas:#101820;
+      --surface:#17232c;
+      --surface-soft:#1d2b35;
+      --ink:#edf7fa;
+      --muted:#a6b6bd;
+      --line:#2e424d;
+      --accent:#4dd6bb;
+      --accent-strong:#83ead8;
+      --blue:#8abfed;
+      --input-bg:#111b22;
+      --table-head:#1b2a34;
+      --row-hover:#21333e;
+      --overlay:rgba(0,0,0,.58);
+      --shadow:0 18px 42px rgba(0,0,0,.24);
+      --success:#7bdc9f;
+      --success-bg:#133426;
+      --info:#9bc9ff;
+      --info-bg:#172f49;
+      --warning:#f2c15c;
+      --warning-bg:#3d2d12;
+      --danger:#ff8a94;
+      --danger-bg:#421d23;
+      --neutral-bg:#243641;
+    }
+
+    body[data-theme="green"] {
+      --canvas:#07130c;
+      --surface:#0b1d12;
+      --surface-soft:#102719;
+      --ink:#b8ffd0;
+      --muted:#75c891;
+      --line:#1b4a2b;
+      --accent:#44ff8a;
+      --accent-strong:#7dffa9;
+      --blue:#87e8ff;
+      --input-bg:#07170d;
+      --table-head:#0f2918;
+      --row-hover:#12311d;
+      --overlay:rgba(0,0,0,.62);
+      --shadow:0 18px 42px rgba(0,0,0,.34);
+      --success:#7dffa9;
+      --success-bg:#0e361d;
+      --info:#80dfff;
+      --info-bg:#0e2d34;
+      --warning:#ffe071;
+      --warning-bg:#332b0d;
+      --danger:#ff8c8c;
+      --danger-bg:#381819;
+      --neutral-bg:#14351f;
+    }
+    body[data-theme="command-center"] {
+      --canvas:#06151f;
+      --surface:#0b222e;
+      --surface-soft:#103143;
+      --ink:#e8f7fb;
+      --muted:#a8c4cb;
+      --line:#235167;
+      --accent:#20d7e8;
+      --accent-strong:#8cf5ff;
+      --blue:#72c8ff;
+      --input-bg:#081b26;
+      --table-head:#0e2b3a;
+      --row-hover:#123b4e;
+      --overlay:rgba(0,8,15,.7);
+      --shadow:0 18px 42px rgba(0,0,0,.38);
+      --success:#72e3a3;
+      --success-bg:#103b2b;
+      --info:#72c8ff;
+      --info-bg:#12334a;
+      --warning:#ffb347;
+      --warning-bg:#3d2a12;
+      --danger:#ff8290;
+      --danger-bg:#461d2b;
+      --neutral-bg:#173a4a;
+    }
+
+    * { box-sizing:border-box; }
+    body {
+      margin:0;
+      background:var(--canvas);
+      color:var(--ink);
+      font-family:Inter,Segoe UI,Arial,sans-serif;
+      line-height:1.45;
+    }
+    a { color:var(--blue); text-decoration:none; }
+    a:hover { text-decoration:underline; }
+    main { width:100%; margin:0; padding:28px clamp(14px,2vw,32px) 48px; }
+    .crumb {
+      display:inline-flex;
+      min-height:32px;
+      align-items:center;
+      color:var(--muted);
+      font-size:14px;
+    }
+    .header {
+      display:flex;
+      align-items:flex-end;
+      justify-content:space-between;
+      gap:16px;
+      margin:10px 0 18px;
+      padding-bottom:18px;
+      border-bottom:1px solid var(--line);
+    }
+    .header-actions { display:flex; align-items:center; flex-wrap:wrap; justify-content:flex-end; gap:10px; }
+    h1 { margin:0; font-size:28px; font-weight:700; }
+    .eyebrow {
+      margin:0 0 4px;
+      color:var(--accent-strong);
+      font-size:12px;
+      font-weight:700;
+      text-transform:uppercase;
+      letter-spacing:.08em;
+    }
+    .button-link,
+    .theme-button,
+    .page-button,
+    .view-button,
+    .drawer-close,
+.export-button,
+.refresh-button {
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      min-height:34px;
+      border:1px solid var(--line);
+      border-radius:5px;
+      background:var(--surface);
+      color:var(--ink);
+      font:inherit;
+      font-size:13px;
+      font-weight:700;
+      padding:0 11px;
+      cursor:pointer;
+    }
+    .button-link:hover,
+    .theme-button:hover,
+    .page-button:hover:not(:disabled),
+    .view-button:hover,
+    .drawer-close:hover,
+.export-button:hover,
+.refresh-button:hover {
+      border-color:var(--accent);
+      color:var(--accent-strong);
+      text-decoration:none;
+    }
+    .icon-button { width:36px; padding:0; font-size:18px; line-height:1; }
+    .theme-switcher {
+      display:inline-flex;
+      align-items:center;
+      gap:4px;
+      padding:3px;
+      border:1px solid var(--line);
+      border-radius:6px;
+      background:var(--surface);
+    }
+    .theme-button { min-height:28px; border:0; color:var(--muted); }
+    .theme-button[aria-pressed="true"] { background:var(--accent); color:#fff; }
+    .tabs {
+      display:flex;
+      gap:18px;
+      overflow-x:auto;
+      border-bottom:1px solid var(--line);
+    }
+    .tabs button {
+      flex:0 0 auto;
+      min-height:44px;
+      border:0;
+      border-bottom:3px solid transparent;
+      background:transparent;
+      color:var(--muted);
+      font:inherit;
+      font-size:14px;
+      font-weight:700;
+      cursor:pointer;
+    }
+    .tabs button.active { border-bottom-color:var(--accent); color:var(--accent-strong); }
+    .metrics {
+      display:grid;
+      grid-template-columns:repeat(4,minmax(0,1fr));
+      gap:12px;
+      margin:18px 0;
+    }
+    .metric {
+      min-height:108px;
+      padding:18px;
+      border:1px solid var(--line);
+      border-radius:6px;
+      background:var(--surface);
+      box-shadow:var(--shadow);
+    }
+    .metric span { display:block; color:var(--muted); font-size:13px; }
+    .metric strong { display:block; margin-top:8px; font-size:28px; }
+    .metric--down {
+      border-color:var(--danger);
+      background:var(--danger-bg);
+      color:var(--danger);
+    }
+    .metric--down span,
+    .metric--down strong { color:var(--danger); }
+    .workspace {
+      border:1px solid var(--line);
+      border-radius:6px;
+      background:var(--surface);
+      box-shadow:var(--shadow);
+      overflow:hidden;
+    }
+    .dashboard-layout {
+      display:grid;
+      grid-template-columns:minmax(0,4fr) minmax(220px,1fr);
+      align-items:start;
+      gap:16px;
+    }
+    .activity-panel {
+      min-width:0;
+      padding:18px;
+      border:1px solid var(--line);
+      border-radius:6px;
+      background:var(--surface);
+      box-shadow:var(--shadow);
+    }
+    .activity-panel h2 { margin:0 0 16px; font-size:16px; }
+    .activity-chart { display:grid; gap:12px; margin:0; padding:0; list-style:none; }
+    .activity-chart__item {
+      display:grid;
+      grid-template-columns:minmax(0,88px) minmax(0,1fr) auto;
+      align-items:center;
+      gap:8px;
+      font-size:12px;
+    }
+    .activity-chart__date { color:var(--muted); white-space:nowrap; }
+    .activity-chart__track { height:10px; overflow:hidden; border-radius:999px; background:var(--surface-soft); }
+    .activity-chart__bar { display:block; width:var(--bar-width); height:100%; border-radius:inherit; background:var(--accent); }
+    .activity-chart__count { min-width:2ch; text-align:right; font-variant-numeric:tabular-nums; }
+    .chart-empty { margin:0; color:var(--muted); font-size:13px; }
+    .security-activity-row {
+      display:grid;
+      grid-template-columns:repeat(2,minmax(0,1fr));
+      gap:16px;
+      margin-top:16px;
+    }
+    .activity-line-chart { display:block; width:100%; height:auto; }
+    .activity-line-chart__grid { stroke:var(--line); stroke-dasharray:3 4; }
+    .activity-line-chart__axis { fill:var(--muted); font-size:11px; }
+    .activity-line { fill:none; stroke:var(--accent); stroke-width:2.5; stroke-linecap:round; stroke-linejoin:round; }
+    .activity-panel--blocks .activity-line { stroke:var(--danger); stroke-dasharray:5 3; }
+    .activity-chart__summary { margin:0 0 8px; color:var(--muted); font-size:13px; }
+    .activity-chart-data { margin-top:8px; font-size:12px; }
+    .activity-chart-data table { width:100%; min-width:0; border-collapse:collapse; }
+    .activity-chart-data th,
+    .activity-chart-data td { padding:4px 8px; text-align:left; }
+    .activity-chart-data td { text-align:right; font-variant-numeric:tabular-nums; }
+    .activity-chart-data tbody { display:block; max-height:280px; overflow:auto; }
+    .activity-chart-data thead,
+    .activity-chart-data tbody tr { display:table; width:100%; table-layout:fixed; }
+    .toolbar {
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:16px;
+      padding:16px 18px;
+      border-bottom:1px solid var(--line);
+    }
+    .table-tools { display:flex; align-items:center; flex-wrap:wrap; gap:10px; }
+    .search {
+      width:min(360px,100%);
+      min-height:38px;
+      padding:8px 12px;
+      border:1px solid var(--line);
+      border-radius:5px;
+      color:var(--ink);
+      background:var(--input-bg);
+      font:inherit;
+    }
+    .table-meta { display:flex; align-items:center; gap:12px; color:var(--muted); font-size:13px; white-space:nowrap; }
+    .page-size {
+      min-height:34px;
+      border:1px solid var(--line);
+      border-radius:4px;
+      background:var(--input-bg);
+      color:var(--ink);
+      padding:0 8px;
+    }
+    .search:focus,
+    .page-size:focus,
+    .theme-button:focus-visible,
+    .view-button:focus-visible,
+    .drawer-close:focus-visible,
+    .export-button:focus-visible,
+    .button-link:focus-visible {
+      outline:2px solid var(--accent-strong);
+      outline-offset:3px;
+      border-color:var(--accent);
+    }
+    .table-wrap { overflow-x:auto; }
+    table { width:100%; min-width:860px; border-collapse:collapse; }
+    th {
+      padding:11px 18px;
+      background:var(--table-head);
+      color:var(--muted);
+      font-size:11px;
+      text-align:left;
+      text-transform:uppercase;
+      letter-spacing:.06em;
+    }
+    td {
+      padding:13px 18px;
+      border-top:1px solid var(--line);
+      color:var(--ink);
+      font-size:13px;
+      vertical-align:top;
+    }
+    tbody tr:hover { background:var(--row-hover); }
+    .log-row.status-success td { background:linear-gradient(90deg,var(--success-bg),transparent 70%); }
+    .log-row.status-neutral td { background:linear-gradient(90deg,var(--neutral-bg),transparent 70%); }
+    .log-row.status-redirect td { background:linear-gradient(90deg,var(--info-bg),transparent 70%); }
+    .log-row.status-client-error td { background:linear-gradient(90deg,var(--warning-bg),transparent 70%); }
+.log-row.status-server-error td { background:linear-gradient(90deg,var(--danger-bg),transparent 70%); }
+.security-alert {
+ display:flex;
+ align-items:center;
+ justify-content:space-between;
+ gap:16px;
+ margin:18px 0;
+ padding:16px 18px;
+ border:3px solid var(--danger);
+ border-radius:6px;
+ background:var(--danger-bg);
+ color:var(--danger);
+ font-weight:800;
+}
+.security-alert[hidden] { display:none; }
+.security-alert a { color:inherit; }
+.security-alert-icon { font-size:1.5rem; line-height:1; }
+@media (prefers-reduced-motion: reduce) { .security-alert { animation:none; } }
+.security-alert-row td { box-shadow:inset 0 2px var(--danger), inset 0 -2px var(--danger); }
+.security-alert-row td:first-child { box-shadow:inset 2px 0 var(--danger), inset 0 2px var(--danger), inset 0 -2px var(--danger); }
+.security-alert-row td:last-child { box-shadow:inset -2px 0 var(--danger), inset 0 2px var(--danger), inset 0 -2px var(--danger); }
+.ip-threat-row td { background:var(--danger-bg); color:var(--danger); }
+.ip-threat-row td:first-child { box-shadow:inset 3px 0 var(--danger); }
+.security-alert-cell { color:var(--danger); font-weight:800; }
+    .status-badge,
+    .method-chip,
+    .context-chip {
+      display:inline-flex;
+      align-items:center;
+      min-height:24px;
+      border-radius:999px;
+      font-size:12px;
+      font-weight:750;
+      padding:0 8px;
+      white-space:nowrap;
+    }
+    .status-success,
+    .method-get { background:var(--success-bg); color:var(--success); }
+    .status-redirect,
+    .method-put,
+    .method-patch { background:var(--info-bg); color:var(--info); }
+    .status-client-error,
+    .method-post { background:var(--warning-bg); color:var(--warning); }
+    .status-server-error,
+    .method-delete { background:var(--danger-bg); color:var(--danger); }
+    .status-neutral,
+    .context-neutral { background:var(--neutral-bg); color:var(--muted); }
+    .status-other,
+    .method-other { background:var(--neutral-bg); color:var(--muted); }
+    .actions-cell { width:1%; }
+    .actions-heading, .actions-cell { white-space:nowrap; }
+    .pagination {
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      min-height:64px;
+      padding:14px 18px;
+      border-top:1px solid var(--line);
+      color:var(--muted);
+    }
+    .page-summary { color:var(--muted); font-size:13px; }
+    .page-actions { display:flex; flex-wrap:wrap; gap:6px; }
+    .page-button { min-width:34px; padding:0 9px; background:var(--input-bg); }
+    .page-button.active { border-color:var(--accent); background:var(--accent); color:#fff; }
+    .page-button:disabled { cursor:not-allowed; opacity:.58; }
+    .empty { margin:0; padding:28px 18px; color:var(--muted); text-align:center; }
+    .detail-backdrop {
+      position:fixed;
+      inset:0;
+      z-index:30;
+      background:var(--overlay);
+    }
+    .detail-drawer {
+      position:fixed;
+      top:0;
+      right:0;
+      z-index:40;
+      display:flex;
+      flex-direction:column;
+      width:min(520px,100%);
+      height:100vh;
+      background:var(--surface);
+      border-left:1px solid var(--line);
+      box-shadow:-20px 0 44px rgba(0,0,0,.18);
+    }
+    .detail-drawer[hidden],
+    .detail-backdrop[hidden] { display:none; }
+    .drawer-header {
+      display:flex;
+      align-items:flex-start;
+      justify-content:space-between;
+      gap:16px;
+      padding:18px;
+      border-bottom:1px solid var(--line);
+    }
+    .drawer-title { margin:0; font-size:20px; }
+    .drawer-meta { margin:4px 0 0; color:var(--muted); font-size:13px; }
+    .drawer-body { overflow:auto; padding:0 18px 18px; }
+    .detail-grid { margin:0; }
+    .detail-item {
+      display:grid;
+      grid-template-columns:150px minmax(0,1fr);
+      gap:12px;
+      padding:14px 0;
+      border-bottom:1px solid var(--line);
+    }
+    .detail-key { color:var(--muted); font-size:12px; font-weight:750; letter-spacing:.04em; text-transform:uppercase; }
+    .detail-value { min-width:0; overflow-wrap:anywhere; white-space:pre-wrap; }
+.crowdsec-table-wrap { max-width:100%; overflow-x:auto; border:1px solid var(--line); border-radius:5px; }
+.crowdsec-table { width:100%; min-width:620px; table-layout:fixed; border-collapse:collapse; }
+.crowdsec-table th, .crowdsec-table td { padding:10px 12px; border-bottom:1px solid var(--line); text-align:left; vertical-align:top; overflow-wrap:anywhere; white-space:normal; }
+.crowdsec-table th { background:var(--table-head); color:var(--muted); font-size:12px; }
+.crowdsec-table tr:last-child td { border-bottom:0; }
+.crowdsec-pagination { display:flex; justify-content:flex-end; align-items:center; gap:10px; margin:10px 0 24px; color:var(--muted); font-size:13px; }
+.crowdsec-pagination button { min-height:36px; }
+    .sr-only {
+      position:absolute;
+      width:1px;
+      height:1px;
+      padding:0;
+      margin:-1px;
+      overflow:hidden;
+      clip:rect(0,0,0,0);
+      white-space:nowrap;
+      border:0;
+    }
+    :focus-visible, .search:focus, .page-size:focus {
+      outline:2px solid var(--accent-strong);
+      outline-offset:3px;
+    }
+    .skip-link { position:absolute; top:-100px; left:16px; z-index:60; padding:12px; background:var(--surface); }
+    .skip-link:focus { top:8px; }
+    .security-filters { display:flex; flex-wrap:wrap; gap:8px; margin:18px 0; }
+    .security-filters button { min-height:44px; }
+    .security-filters [aria-pressed="true"] { border:2px solid var(--accent-strong); color:var(--accent-strong); }
+    .incident-category { color:var(--danger); font-weight:700; }
+    .table-wrap { max-width:100%; }
+    td { max-width:340px; overflow-wrap:anywhere; }
+    .actions-cell button { margin:0 0 8px; min-height:44px; }
+    .detail-open { overflow:hidden; }
+    .evidence-record { border-bottom:1px solid var(--line); padding:12px 0; }
+    .evidence-record pre { white-space:pre-wrap; overflow-wrap:anywhere; font:inherit; }
+    .block-dialog { width:min(480px,calc(100% - 28px)); max-height:90vh; overflow:auto; border:1px solid var(--line); border-radius:6px; padding:24px; background:var(--surface); color:var(--ink); }
+    .block-dialog::backdrop { background:var(--overlay); }
+    .block-dialog label { display:block; margin:16px 0 6px; }
+    .block-dialog input, .block-dialog textarea, .block-dialog select { width:100%; padding:10px; background:var(--input-bg); color:var(--ink); border:1px solid var(--line); font:inherit; }
+    .dialog-actions { display:flex; flex-wrap:wrap; gap:12px; margin-top:20px; }
+    [hidden] { display:none !important; }
+    @media (max-width:1100px) {
+      .dashboard-layout { grid-template-columns:1fr; }
+    }
+    @media (max-width:760px) {
+      main { padding:20px 14px 40px; }
+      .header { align-items:flex-start; flex-direction:column; }
+      .header-actions { justify-content:flex-start; }
+      h1 { font-size:24px; }
+      .metrics { grid-template-columns:repeat(2,minmax(0,1fr)); }
+      .security-activity-row { grid-template-columns:1fr; }
+      .toolbar { align-items:stretch; flex-direction:column; }
+      .table-tools { align-items:stretch; flex-direction:column; }
+      .search { width:100%; }
+      .table-meta { justify-content:space-between; }
+      .pagination { align-items:flex-start; flex-direction:column; gap:12px; }
+      .detail-item { grid-template-columns:1fr; gap:4px; }
+      .table-meta { flex-wrap:wrap; white-space:normal; }
+      .security-alert { flex-wrap:wrap; }
+    }
+  </style>
+</head>
+<body data-theme="{{ app_theme }}">
+ <a class="skip-link" href="#collector-content">Skip to collector data</a>
+ <main id="collector-content" tabindex="-1" data-slug="{{ entity.slug }}" data-can-manage-crowdsec="{{ can_manage_crowdsec|yesno:'true,false' }}"{% if user.is_superuser %} data-security-report-url="{% url 'log_collector:security_report' entity.slug %}"{% endif %}>
+    <a class="crumb" href="{% url 'log_collector:entity_selection' %}">All entities</a>
+    <header class="header">
+      <div>
+        <p class="eyebrow">{{ entity.get_entity_type_display }}</p>
+        <h1>{{ entity.name }}</h1>
+        <p><button class="refresh-button" id="refresh-data" type="button">Refresh data</button> <span id="refresh-status" role="status" aria-live="polite"></span></p>
+      </div>
+ </header>
+
+ {% if security_summary.critical_alert_count %}
+ <section class="security-alert" id="security-alert" role="alert" aria-live="assertive">
+   <span class="security-alert-icon" aria-hidden="true">⚠</span><span>Suspicious activity detected — investigate immediately.</span>
+   {% if user.is_superuser %}<a href="{% url 'log_collector:security_report' entity.slug %}">Open incident report</a>{% endif %}
+ </section>
+ {% else %}
+ <section class="security-alert" id="security-alert" role="alert" aria-live="assertive" hidden></section>
+ {% endif %}
+
+ <nav class="tabs" aria-label="Collector data views">
+      <button class="active" type="button" data-tab="access-logs" aria-pressed="true">Access Logs</button>
+      {% if entity.geolocation_enabled %}<button type="button" data-tab="geolocation" aria-pressed="false">Geolocation</button>{% endif %}
+      {% if entity.user_sessions_enabled %}<button type="button" data-tab="user-sessions" aria-pressed="false">User Sessions</button>{% endif %}
+      {% if entity.is_hosting %}<button type="button" data-tab="crowdsec" aria-pressed="false">CrowdSec</button>{% endif %}
+    </nav>
+
+    {% if entity.is_hosting %}
+    <section id="crowdsec-panel" class="activity-panel" aria-labelledby="crowdsec-heading" hidden>
+      <h2 id="crowdsec-heading">CrowdSec</h2>
+      <p id="crowdsec-status" role="status" aria-live="polite">Checking CrowdSec connection…</p>
+      <div id="crowdsec-setup" hidden>
+        <p>Configure the CrowdSec Local API connection from the hosting entity’s Manage page.</p>
+        {% if can_manage_crowdsec %}<a class="view-button" href="{% url 'log_collector:entity_manage' entity.slug %}">Manage CrowdSec settings</a>{% endif %}
+      </div>
+      <div id="crowdsec-content" hidden>
+        {% if can_manage_crowdsec %}<form id="crowdsec-block-form">
+          {% csrf_token %}<h3>Block an IP through CrowdSec</h3>
+          <label>IP address <input name="ip_address" required></label>
+          <label>Duration <select name="duration"><option>1h</option><option>4h</option><option>24h</option><option>7d</option></select></label>
+          <label>Reason <input name="reason" maxlength="120" required></label>
+          <button class="view-button" type="submit">Create decision</button><span id="crowdsec-action-result" role="status"></span>
+        </form>{% endif %}
+        <h3>Detections</h3><div id="crowdsec-alerts" aria-live="polite"></div>
+        <nav id="crowdsec-alerts-pagination" class="crowdsec-pagination" aria-label="Detections pagination"></nav>
+        <h3>Active decisions</h3><div id="crowdsec-decisions" aria-live="polite"></div>
+        <nav id="crowdsec-decisions-pagination" class="crowdsec-pagination" aria-label="Decisions pagination"></nav>
+      </div>
+    </section>
+    {% endif %}
+
+    <nav class="security-filters" id="security-filters" aria-label="Access log security filters">
+      <button class="view-button" type="button" data-security-filter="alerts" aria-pressed="true">All Alerts</button>
+      <button class="view-button" type="button" data-security-filter="unauthorized" aria-pressed="false">Unauthorized</button>
+      <button class="view-button" type="button" data-security-filter="malicious" aria-pressed="false">Malicious</button>
+      <button class="view-button" type="button" data-security-filter="all" aria-pressed="false">All Access Logs</button>
+    </nav>
+
+    <section class="metrics" id="metrics" aria-live="polite"></section>
+
+    <section class="dashboard-layout" id="dashboard-layout" aria-label="Collector data and recent activity">
+<section class="workspace" aria-label="Collector data table">
+      <h2 class="sr-only" id="view-heading">All Alerts</h2>
+      <div class="toolbar">
+        <input class="search" id="search" type="search" placeholder="Search current table" aria-label="Search current table">
+        <div class="table-tools">
+          <button class="export-button" type="button" data-export-action="csv">Export CSV</button>
+          <div class="table-meta">
+            <span id="count"></span>
+            <label>Rows
+              <select class="page-size" id="page-size" aria-label="Rows per page">
+                <option value="5">5</option>
+                <option value="25" selected>25</option>
+                <option value="100">100</option>
+                <option value="500">500</option>
+                <option value="1000">1000</option>
+              </select>
+            </label>
+          </div>
+        </div>
+      </div>
+      <div class="table-wrap" id="table" tabindex="0" aria-label="Scrollable collector table"></div>
+<nav class="pagination" id="pagination" aria-label="Table pagination"></nav>
+</section>
+<aside class="activity-panel" aria-labelledby="activity-chart-heading">
+<h2 id="activity-chart-heading">Requests in the last 7 days</h2>
+<div id="daily-requests-chart"></div>
+</aside>
+</section>
+<section class="security-activity-row" aria-label="Security activity over the last 24 hours">
+  <section class="activity-panel" aria-labelledby="attack-activity-heading">
+    <h2 id="attack-activity-heading">Attack evidence per 10 minutes</h2>
+    <div id="attack-activity-chart"></div>
+  </section>
+  <section class="activity-panel activity-panel--blocks" aria-labelledby="automatic-ip-blocks-heading">
+    <h2 id="automatic-ip-blocks-heading">New automatic IP blocks per 10 minutes</h2>
+    <div id="automatic-ip-blocks-chart"></div>
+  </section>
+</section>
+</main>
+
+  <div class="detail-backdrop" id="detail-backdrop" data-detail-close hidden></div>
+  <aside class="detail-drawer" id="row-detail-drawer" role="dialog" aria-modal="true" aria-labelledby="drawer-title" hidden>
+    <header class="drawer-header">
+      <div>
+        <h2 class="drawer-title" id="drawer-title">Row details</h2>
+        <p class="drawer-meta" id="drawer-meta"></p>
+      </div>
+      <button class="drawer-close" type="button" data-detail-close>Close</button>
+    </header>
+    <div class="drawer-body" id="drawer-body"></div>
+  </aside>
+
+  {% if can_manage_blocks or can_white_flag %}
+  <dialog class="block-dialog" id="block-dialog" aria-labelledby="block-title" aria-describedby="block-description">
+    <form id="block-form">
+      {% csrf_token %}
+      <h2 id="block-title">Confirm IP block</h2>
+      <p id="block-description"></p>
+      <label for="block-reason">Reason (required)</label>
+      <textarea id="block-reason" name="reason" required maxlength="2000" rows="3"></textarea>
+      <div id="block-duration-fields">
+        <label for="block-lifetime">Block lifetime</label>
+        <select id="block-lifetime" name="lifetime"><option value="temporary">Temporary</option><option value="permanent">Permanent</option></select>
+        <label for="block-duration">Duration in seconds</label>
+        <input id="block-duration" name="duration" type="number" min="1" step="1" value="3600" required>
+      </div>
+      <p id="block-result" role="status" aria-live="polite"></p>
+      <div class="dialog-actions">
+        <button class="view-button" id="block-submit" type="submit">Confirm block</button>
+        <button class="view-button" id="block-cancel" type="button">Cancel</button>
+      </div>
+    </form>
+  </dialog>
+  {% endif %}
+
+  {% if can_contain_users %}
+  <dialog class="block-dialog" id="contain-dialog" aria-labelledby="contain-title" aria-describedby="contain-description">
+    <form id="contain-form">
+      {% csrf_token %}
+      <h2 id="contain-title">Contain user and block IP</h2>
+      <p id="contain-description"></p>
+      <p><strong>Warning:</strong> The IP block is deployment-wide and may affect other users sharing it.</p>
+      <label for="contain-reason">Reason (required)</label>
+      <textarea id="contain-reason" name="reason" required maxlength="2000" rows="3"></textarea>
+      <label for="contain-username">Type the exact username to confirm</label>
+      <input id="contain-username" name="confirmation_username" required autocomplete="off">
+      <p id="contain-result" role="status" aria-live="polite"></p>
+      <div class="dialog-actions">
+        <button class="view-button" id="contain-submit" type="submit">Contain user and block IP</button>
+        <button class="view-button" id="contain-cancel" type="button">Cancel</button>
+      </div>
+    </form>
+  </dialog>
+  {% endif %}
+
+  <script>
+const root = document.querySelector('main');
+const slug = root.dataset.slug;
+const collectorFetch = window.fetchWithAuth
+  ? window.fetchWithAuth.bind(window)
+  : (url, options = {}) => window.fetch(url, {...options, credentials: 'same-origin'});
+const securityAlert = document.querySelector('#security-alert');
+const securityReportUrl = root.dataset.securityReportUrl;
+    const metrics = document.querySelector('#metrics');
+    const dailyRequestsChart = document.querySelector('#daily-requests-chart');
+const attackActivityChart = document.querySelector('#attack-activity-chart');
+const automaticIpBlocksChart = document.querySelector('#automatic-ip-blocks-chart');
+    const table = document.querySelector('#table');
+    const pagination = document.querySelector('#pagination');
+    const count = document.querySelector('#count');
+    const search = document.querySelector('#search');
+    const pageSize = document.querySelector('#page-size');
+  const exportButton = document.querySelector('[data-export-action="csv"]');
+  const refreshButton = document.querySelector('#refresh-data');
+  const refreshStatus = document.querySelector('#refresh-status');
+    const drawer = document.querySelector('#row-detail-drawer');
+    const drawerTitle = document.querySelector('#drawer-title');
+    const drawerMeta = document.querySelector('#drawer-meta');
+    const drawerBody = document.querySelector('#drawer-body');
+    const detailBackdrop = document.querySelector('#detail-backdrop');
+    const detailCloseButtons = document.querySelectorAll('[data-detail-close]');
+    const dateFields = new Set(['timestamp', 'captured_at', 'created_at', 'last_seen_at']);
+  let tab = 'access-logs';
+  let securityFilter = 'alerts';
+  const viewStates = new Map();
+  const securityFilters = document.querySelector('#security-filters');
+  const viewHeading = document.querySelector('#view-heading');
+  let tableRequest = 0;
+  let detailRequest = 0;
+  let returnFocus = null;
+  let returnRowId = null;
+  const incidentView = () => tab === 'access-logs' && securityFilter !== 'all';
+  const viewKey = () => tab === 'access-logs' ? `access-logs:${securityFilter}` : tab;
+  const endpoint = () => incidentView() ? 'security-incidents' : tab;
+  const viewLabel = () => tab !== 'access-logs' ? formatLabel(tab) : ({alerts:'All Alerts', unauthorized:'Unauthorized', malicious:'Malicious', all:'All Access Logs'}[securityFilter]);
+  let latestRows = [];
+  let currentPage = 1;
+  const crowdsecPageSize = 10;
+  const crowdsecPages = {alerts:0, decisions:0};
+  const crowdsecRows = {alerts:[], decisions:[]};
+
+    const escapeHtml = value => String(value ?? '').replace(/[&<>'"]/g, character => ({
+      '&': '&amp;',
+      '<': '&lt;',
+      '>': '&gt;',
+      "'": '&#39;',
+      '"': '&quot;'
+    }[character]));
+
+    const columns = name => {
+      if (name === 'access-logs') return ['timestamp', 'ip_address', 'url_username', 'method', 'path', 'request_context', 'status_code', 'security_alert'];
+      if (name === 'geolocation') return ['captured_at', 'user', 'ip_address', 'latitude', 'longitude', 'country', 'city'];
+if (name === 'user-sessions') return ['session_key', 'last_seen_at', 'user', 'ip_address', 'user_agent', 'ip_threat', 'security_alert'];
+    return [];
+    };
+
+    function formatLabel(value) {
+      if (value === 'url_username') return 'Username (URL)';
+      return String(value ?? '').replaceAll('_', ' ').replaceAll('-', ' ').replace(/\b\w/g, character => character.toUpperCase());
+    }
+
+    function formatDateTime(value) {
+      if (!value) return '';
+      const date = new Date(value);
+      if (Number.isNaN(date.getTime())) return value;
+      return new Intl.DateTimeFormat(undefined, {
+        year: 'numeric',
+        month: 'short',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit'
+      }).format(date);
+    }
+
+function formatValue(field, value) {
+      if (field === 'request_context' && value) return `${value.label}: ${value.explanation}`;
+if (field === 'security_alert' && value) return `${value.level}: ${(value.reasons || []).join('; ')}`;
+if (field === 'ip_threat' && value) return `${value.category} ${value.severity}: ${(value.reasons || []).join('; ')}`;
+ if (dateFields.has(field)) return formatDateTime(value);
+      if (typeof value === 'boolean') return value ? 'Active' : 'Inactive';
+      if (value && typeof value === 'object') return JSON.stringify(value, null, 2);
+      return value ?? '';
+    }
+
+    function requestContextFor(row) {
+      if (row.request_context) return row.request_context;
+      if (String(row.method ?? '').toUpperCase() === 'OPTIONS') {
+        return {
+          kind: 'capability_probe',
+          label: 'Capability probe',
+          tone: 'neutral',
+          explanation: 'Server response only; authentication and action execution are not established.'
+        };
+      }
+      return {
+        kind: 'other_request',
+        label: 'Request context unavailable',
+        tone: 'standard',
+        explanation: 'Authentication and action execution are not established from this access-log response.'
+      };
+    }
+
+    function statusTone(statusCode, requestContext) {
+      if (requestContext?.tone === 'neutral') return 'neutral';
+      const code = Number(statusCode);
+      if (code >= 500) return 'server-error';
+      if (code >= 400) return 'client-error';
+      if (code >= 300) return 'redirect';
+      if (code >= 200) return 'success';
+      return 'other';
+    }
+
+    function methodTone(method) {
+      const value = String(method ?? '').toLowerCase();
+      return ['get', 'post', 'put', 'patch', 'delete'].includes(value) ? value : 'other';
+    }
+
+    function renderStatus(value, row) {
+      const tone = statusTone(value, requestContextFor(row));
+      return `<span class="status-badge status-${tone}">${escapeHtml(value)}</span>`;
+    }
+
+    function renderMethod(value) {
+      const tone = methodTone(value);
+      return `<span class="method-chip method-${tone}">${escapeHtml(value)}</span>`;
+    }
+
+    function renderRequestContext(row) {
+      const context = requestContextFor(row);
+      return `<span class="context-chip context-${escapeHtml(context.tone)}" title="${escapeHtml(context.explanation)}">${escapeHtml(context.label)}</span>`;
+    }
+
+function renderCell(field, row) {
+ const value = formatValue(field, row[field]);
+if (field === 'security_alert') return row.security_alert ? `<span class="security-alert-cell">${escapeHtml(value)}</span>` : '—';
+if (field === 'ip_threat') {
+if (!row.ip_threat) return '—';
+const rowIndex = latestRows.indexOf(row);
+return `<span class="security-alert-cell">${escapeHtml(value)}</span><div class="actions-cell">${blockControl(row, rowIndex)}${containControl(row, rowIndex)}</div>`;
+}
+      if (tab === 'access-logs' && field === 'request_context') return renderRequestContext(row);
+    if (tab === 'access-logs' && field === 'method') return renderMethod(value);
+      if (tab === 'access-logs' && field === 'status_code') return renderStatus(value, row);
+      return escapeHtml(value);
+    }
+
+function rowClass(row) {
+      const classes = tab === 'access-logs' ? [`log-row`, `status-${statusTone(row.status_code, requestContextFor(row))}`] : [];
+ if (row.security_alert && row.security_alert.level === 'critical') classes.push('security-alert-row');
+ if (tab === 'user-sessions' && row.ip_threat) classes.push('ip-threat-row');
+ return classes.join(' ');
+}
+
+    function rowSummary(row) {
+      if (tab === 'access-logs') return `${row.method ?? ''} ${row.path ?? ''}`.trim() || 'Access log';
+      if (tab === 'geolocation') return row.user ? `${row.user} location` : 'Location row';
+      if (tab === 'user-sessions') return row.session_key || row.user || 'User session';
+    return 'Collector record';
+    }
+
+async function loadMetrics() {
+    const response = await collectorFetch(`/log-collector/api/entities/${slug}/metrics/`);
+    if (!response.ok) {
+      renderMetricsUnavailable();
+      return false;
+    }
+ const data = await response.json();
+ renderSecuritySummary(data.security_summary);
+ dailyRequestsChart.innerHTML = renderDailyRequestChart(data.daily_requests);
+attackActivityChart.innerHTML = renderTenMinuteActivityChart(
+  'Attack evidence per 10 minutes', data.attack_activity_10m, 'attack-activity'
+);
+automaticIpBlocksChart.innerHTML = renderTenMinuteActivityChart(
+  'New automatic IP blocks per 10 minutes', data.automatic_ip_blocks_10m, 'automatic-ip-blocks'
+);
+      metrics.innerHTML = [
+        ['Requests', data.access_log_count],
+        ['Today', data.requests_today],
+        ['Errors', data.error_count],
+        ['Unique IPs', data.unique_ips]
+    ].map(([label, value]) => `<article class="metric"><span>${label}</span><strong>${escapeHtml(value ?? '--')}</strong></article>`).join('');
+ return true;
+}
+
+function renderDailyRequestChart(dailyRequests) {
+ const unavailable = '<p class="chart-empty">Daily request data is unavailable.</p>';
+ if (!Array.isArray(dailyRequests) || dailyRequests.length !== 7) return unavailable;
+ let previousDate = null;
+ for (const item of dailyRequests) {
+   if (!item || typeof item.date !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(item.date)
+     || !Number.isInteger(item.count) || item.count < 0) return unavailable;
+   const dateValue = new Date(`${item.date}T00:00:00Z`);
+   const timestamp = dateValue.getTime();
+   if (!Number.isFinite(timestamp) || dateValue.toISOString().slice(0, 10) !== item.date
+     || (previousDate !== null && timestamp !== previousDate + 86400000)) return unavailable;
+   previousDate = timestamp;
+ }
+ const maxCount = Math.max(1, ...dailyRequests.map((item) => item.count));
+ return `<ol class="activity-chart" aria-label="Daily request counts for the last seven days">${dailyRequests.map((item) => {
+   const barWidth = (item.count / maxCount) * 100;
+   return `<li class="activity-chart__item"><time class="activity-chart__date" datetime="${escapeHtml(item.date)}">${escapeHtml(item.date)}</time><span class="activity-chart__track"><span class="activity-chart__bar" style="--bar-width:${barWidth}%"></span></span><strong class="activity-chart__count">${item.count}</strong></li>`;
+ }).join('')}</ol>`;
+}
+
+function renderTenMinuteActivityChart(title, buckets, chartId) {
+  const unavailable = '<p class="chart-empty">Ten-minute activity data is unavailable.</p>';
+  if (!Array.isArray(buckets) || buckets.length !== 144) return unavailable;
+  let previousTimestamp = null;
+  for (const item of buckets) {
+    if (!item || typeof item.bucket_start !== 'string'
+      || !Number.isInteger(item.count) || item.count < 0) return unavailable;
+    const timestamp = Date.parse(item.bucket_start);
+    const bucketDate = new Date(timestamp);
+    if (!Number.isFinite(timestamp)
+      || bucketDate.getUTCMinutes() % 10 !== 0
+      || bucketDate.getUTCSeconds() !== 0
+      || bucketDate.getUTCMilliseconds() !== 0
+      || (previousTimestamp !== null && timestamp !== previousTimestamp + 600000)) return unavailable;
+    previousTimestamp = timestamp;
+  }
+
+  const maxCount = Math.max(1, ...buckets.map(item => item.count));
+  const totalCount = buckets.reduce((total, item) => total + item.count, 0);
+  const peakCount = Math.max(0, ...buckets.map(item => item.count));
+  const peakIndex = buckets.findIndex(item => item.count === peakCount);
+  const formatTime = value => new Intl.DateTimeFormat('en-PH', {
+    timeZone: 'Asia/Manila', hour: '2-digit', minute: '2-digit', hour12: false
+  }).format(new Date(value));
+  const width = 760, height = 230, left = 44, right = 12, top = 16, bottom = 32;
+  const plotWidth = width - left - right, plotHeight = height - top - bottom;
+  const points = buckets.map((item, index) => {
+    const x = left + index * plotWidth / (buckets.length - 1);
+    const y = top + plotHeight - item.count * plotHeight / maxCount;
+    return x.toFixed(2) + ',' + y.toFixed(2);
+  }).join(' ');
+  const gridSteps = Math.min(maxCount, 4);
+  const grid = Array.from({length: gridSteps + 1}, (_, index) => {
+    const y = top + index * plotHeight / gridSteps;
+    const value = Math.round(maxCount * (1 - index / gridSteps));
+    return '<g><line class="activity-line-chart__grid" x1="' + left + '" y1="' + y
+      + '" x2="' + (width - right) + '" y2="' + y + '"></line><text class="activity-line-chart__axis"'
+      + ' x="' + (left - 8) + '" y="' + (y + 4) + '" text-anchor="end">' + value + '</text></g>';
+  }).join('');
+  const tickIndexes = [0, 36, 72, 108, 143];
+  const ticks = tickIndexes.map((index, tick) => {
+    const x = left + index * plotWidth / (buckets.length - 1);
+    const anchor = tick === 0 ? 'start' : tick === tickIndexes.length - 1 ? 'end' : 'middle';
+    return '<text class="activity-line-chart__axis" x="' + x + '" y="' + (height - 8)
+      + '" text-anchor="' + anchor + '">' + escapeHtml(formatTime(buckets[index].bucket_start)) + '</text>';
+  }).join('');
+  const titleId = chartId + '-title';
+  const descriptionId = chartId + '-description';
+  const description = 'Last 24 completed ten-minute buckets. ' + totalCount + ' total. Peak '
+    + peakCount + ' at ' + formatTime(buckets[peakIndex].bucket_start) + '.';
+  const rows = buckets.map(item => '<tr><th scope="row"><time datetime="'
+    + escapeHtml(item.bucket_start) + '">' + escapeHtml(formatTime(item.bucket_start))
+    + '</time></th><td>' + item.count + '</td></tr>').join('');
+
+  return '<p class="activity-chart__summary">' + totalCount + ' total; peak ' + peakCount
+    + ' per 10 minutes at ' + escapeHtml(formatTime(buckets[peakIndex].bucket_start)) + '.</p>'
+    + '<svg class="activity-line-chart" role="img" aria-labelledby="' + escapeHtml(titleId) + ' '
+    + escapeHtml(descriptionId) + '" viewBox="0 0 ' + width + ' ' + height + '">'
+    + '<title id="' + escapeHtml(titleId) + '">' + escapeHtml(title) + '</title>'
+    + '<desc id="' + escapeHtml(descriptionId) + '">' + escapeHtml(description) + '</desc>'
+    + grid + '<polyline class="activity-line" points="' + points + '"></polyline>' + ticks + '</svg>'
+    + '<details class="activity-chart-data"><summary>View 10-minute counts</summary>'
+    + '<table><thead><tr><th scope="col">Bucket start (Asia/Manila)</th><th scope="col">Count</th></tr></thead>'
+    + '<tbody>' + rows + '</tbody></table></details>';
+}
+
+function renderMetricsUnavailable() {
+  dailyRequestsChart.innerHTML = renderDailyRequestChart(null);
+  attackActivityChart.innerHTML = renderTenMinuteActivityChart('Attack evidence per 10 minutes', null, 'attack-activity');
+  automaticIpBlocksChart.innerHTML = renderTenMinuteActivityChart(
+    'New automatic IP blocks per 10 minutes', null, 'automatic-ip-blocks'
+  );
+  metrics.innerHTML = [
+    ['System status', 'Down'],
+    ['Metrics API', 'Unavailable'],
+    ['Data refresh', 'Failed'],
+    ['Action', 'Check connection']
+  ].map(([label, value]) => `<article class="metric metric--down"><span>${label}</span><strong>${value}</strong></article>`).join('');
+}
+
+function renderSecuritySummary(summary) {
+ const count = Number(summary?.critical_alert_count || 0);
+ if (!count) {
+   securityAlert.hidden = true;
+   securityAlert.textContent = '';
+   return;
+ }
+ const reportLink = securityReportUrl ? ` <a href="${escapeHtml(securityReportUrl)}">Open incident report</a>` : '';
+ securityAlert.hidden = false;
+ securityAlert.innerHTML = `<span class="security-alert-icon" aria-hidden="true">⚠</span><span>Suspicious activity detected — investigate immediately. ${count} critical record${count === 1 ? '' : 's'} found.</span>${reportLink}`;
+}
+
+    function renderPagination(data) {
+      const start = data.count ? ((data.page - 1) * data.page_size) + 1 : 0;
+      const end = Math.min(data.page * data.page_size, data.count);
+      const numbers = [];
+      for (let number = Math.max(1, data.page - 2); number <= Math.min(data.num_pages, data.page + 2); number += 1) {
+        numbers.push(`<button class="page-button ${number === data.page ? 'active' : ''}" type="button" data-page="${number}" ${number === data.page ? 'aria-current="page"' : ''}>${number}</button>`);
+      }
+      pagination.innerHTML = `<span class="page-summary">Showing ${start}-${end} of ${data.count}</span><span class="page-actions"><button class="page-button" type="button" data-page="${data.page - 1}" ${data.page <= 1 ? 'disabled' : ''}>Previous</button>${numbers.join('')}<button class="page-button" type="button" data-page="${data.page + 1}" ${data.page >= data.num_pages ? 'disabled' : ''}>Next</button></span>`;
+      pagination.querySelectorAll('[data-page]').forEach(button => button.addEventListener('click', () => loadTable(Number(button.dataset.page))));
+    }
+
+  function renderTable(data) {
+    const focused = document.activeElement;
+    const focusedRow = table.contains(focused) ? focused.closest('[data-incident-id], [data-record-key]') : null;
+    const focusedKey = focusedRow?.dataset.incidentId || focusedRow?.dataset.recordKey;
+    {% if can_manage_blocks or can_white_flag %}
+      const focusedAction = focused?.hasAttribute('data-block-action') ? '[data-block-action]' : focused?.hasAttribute('data-white-flag-action') ? '[data-white-flag-action]' : '[data-row-action="view"]';
+    {% else %}
+    const focusedAction = '[data-row-action="view"]';
+    {% endif %}
+    const focusedPage = pagination.contains(focused) ? focused.dataset.page : null;
+    const fields = columns(tab);
+    currentPage = data.page || currentPage;
+      latestRows = data.results || [];
+      viewHeading.textContent = viewLabel();
+      count.textContent = `${data.count} ${incidentView() ? 'incidents' : 'records'}`;
+      if (incidentView()) {
+        const headers = ['Category / Severity', 'Source IP', 'Request count', 'Latest target', 'Last seen', 'Application block (Django)', 'Edge block (Nginx)', 'Actions'];
+  table.innerHTML = latestRows.length ? `<table><caption class="sr-only">${escapeHtml(viewLabel())}</caption><thead><tr>${headers.map(label => `<th scope="col"${String(label).toLowerCase() === 'actions' ? ' class="actions-heading"' : ''}>${label}</th>`).join('')}</tr></thead><tbody>${latestRows.map((row, index) => `<tr data-incident-id="${escapeHtml(row.id)}"><td class="incident-category">${escapeHtml(formatLabel(row.category))}<br>${escapeHtml(formatLabel(row.severity))}</td><td>${escapeHtml(row.source_ip)}</td><td>${escapeHtml(row.request_count)}</td><td>${escapeHtml(row.latest_evidence?.path || row.latest_evidence?.target_family || row.target_family || '—')}</td><td>${escapeHtml(formatDateTime(row.last_seen_at))}</td><td>${escapeHtml(blockState('django', row.django_state))}${row.expires_at ? `<br>Expires ${escapeHtml(formatDateTime(row.expires_at))}` : ''}</td><td>${escapeHtml(blockState('nginx', row.nginx_state))}</td><td class="actions-cell"><button class="view-button" type="button" data-row-action="view" data-row-index="${index}" aria-label="View evidence for ${escapeHtml(row.source_ip)}">View evidence</button>${blockControl(row, index)}${whiteFlagControl(row, index)}</td></tr>`).join('')}</tbody></table>` : '<p class="empty">No incidents found for this filter.</p>';
+      } else {
+  table.innerHTML = latestRows.length ? `<table><caption class="sr-only">${escapeHtml(viewLabel())}</caption><thead><tr>${fields.map(field => `<th scope="col">${escapeHtml(formatLabel(field))}</th>`).join('')}<th scope="col" class="actions-heading">Actions</th></tr></thead><tbody>${latestRows.map((row, index) => `<tr data-record-key="${escapeHtml(row.id || row.session_key || index)}" class="${rowClass(row)}">${fields.map(field => `<td>${renderCell(field, row)}</td>`).join('')}<td class="actions-cell"><button class="view-button" type="button" data-row-action="view" data-row-index="${index}">View</button>${blockControl(row, index)}${containControl(row, index)}${whiteFlagControl(row, index)}</td></tr>`).join('')}</tbody></table>` : '<p class="empty">No records found.</p>';
+      }
+      renderPagination(data);
+      if (focusedKey != null) {
+        const key = CSS.escape(String(focusedKey));
+        const replacement = table.querySelector(`[data-incident-id="${key}"] ${focusedAction}, [data-record-key="${key}"] ${focusedAction}`);
+        (replacement || table).focus();
+      } else if (focusedPage != null) {
+        (pagination.querySelector(`[data-page="${CSS.escape(focusedPage)}"]:not(:disabled)`) || table).focus();
+      }
+    }
+
+    function blockState(layer, state) {
+      const labels = layer === 'django'
+        ? {active:'Django: active', inactive:'Django: inactive'}
+        : {applied:'Nginx: applied', pending:'Nginx: pending', failed:'Nginx: failed', not_configured:'Nginx: not configured', removed:'Nginx: removed'};
+      return labels[state] || `${layer === 'django' ? 'Django' : 'Nginx'}: ${state || 'unknown'}`;
+    }
+
+    function blockControl(row, index) {
+      {% if can_manage_blocks %}
+      const ipAddress = rowIp(row);
+      if (!ipAddress || row.is_trusted_ip) return '';
+      const action = row.django_state === 'active' ? 'unblock' : 'block';
+      return `<button class="view-button" type="button" data-block-action="${action}" data-row-index="${index}" aria-label="${formatLabel(action)} ${escapeHtml(ipAddress)}">${formatLabel(action)} IP</button>`;
+      {% else %}
+      return '';
+      {% endif %}
+    }
+
+    function whiteFlagControl(row, index) {
+      {% if can_white_flag %}
+      const ipAddress = rowIp(row);
+      if (!ipAddress || (row.is_trusted_ip && !row.is_white_flagged)) return '';
+      const action = row.is_white_flagged ? 'remove_white_flag' : 'white_flag';
+      const label = row.is_white_flagged ? 'Remove White Flag' : 'White Flag IP';
+      return `<button class="view-button" type="button" data-white-flag-action="${action}" data-row-index="${index}" aria-label="${label} ${escapeHtml(ipAddress)}">${label}</button>`;
+      {% else %}
+      return '';
+      {% endif %}
+    }
+
+    function containControl(row, index) {
+      {% if can_contain_users %}
+      if (tab !== 'user-sessions' || !row.ip_threat || row.is_trusted_ip) return '';
+      return `<button class="view-button" type="button" data-contain-action data-row-index="${index}" aria-label="Contain ${escapeHtml(row.user)} and block ${escapeHtml(row.ip_address)}">Contain user and block IP</button>`;
+      {% else %}
+      return '';
+      {% endif %}
+    }
+
+    function rowIp(row) {
+      return row?.source_ip || row?.ip_address || '';
+    }
+
+    function restoreFocus() {
+      const replacement = returnRowId == null ? null : table.querySelector(`[data-incident-id="${CSS.escape(String(returnRowId))}"] [data-row-action="view"]`);
+      (returnFocus?.isConnected ? returnFocus : replacement || refreshButton).focus();
+    }
+
+    async function openDetail(index) {
+      const row = latestRows[index];
+      if (!row) return;
+      const request = ++detailRequest;
+      returnFocus = document.activeElement;
+      returnRowId = incidentView() ? row.id : null;
+      drawerTitle.textContent = incidentView() ? `Incident evidence: ${row.source_ip}` : rowSummary(row);
+      drawerMeta.textContent = viewLabel();
+      drawerBody.innerHTML = `<dl class="detail-grid">${Object.entries(row).map(([field, value]) => `<div class="detail-item"><dt class="detail-key">${escapeHtml(formatLabel(field))}</dt><dd class="detail-value">${escapeHtml(formatValue(field, value))}</dd></div>`).join('')}</dl>`;
+      drawer.hidden = false;
+      detailBackdrop.hidden = false;
+      document.body.classList.add('detail-open');
+      root.inert = true;
+      drawer.querySelector('.drawer-close').focus();
+      if (!incidentView()) return;
+      drawerBody.innerHTML = '<p role="status">Loading every evidence row…</p>';
+      try {
+        const response = await collectorFetch(`/log-collector/api/entities/${slug}/security-incidents/${row.id}/evidence/`);
+        if (!response.ok) throw new Error('Evidence unavailable');
+        const data = await response.json();
+        if (request !== detailRequest || drawer.hidden) return;
+        const rawUrl = `/log-collector/entities/${slug}/?security=all&q=${encodeURIComponent(row.source_ip)}`;
+        drawerBody.innerHTML = `<p>${escapeHtml(data.count)} evidence rows. Suspicious evidence—not proof of compromise.</p><p><a href="${escapeHtml(rawUrl)}">All Access Logs for ${escapeHtml(row.source_ip)}</a></p>${(data.results || []).map((evidence, index) => `<section class="evidence-record"><h3>Evidence ${index + 1}</h3><pre>${escapeHtml(JSON.stringify(evidence, null, 2))}</pre></section>`).join('')}`;
+      } catch (error) {
+        if (request === detailRequest && !drawer.hidden) drawerBody.innerHTML = '<p role="alert">Evidence unavailable. Close and try again.</p>';
+      }
+    }
+
+    function closeDetail() {
+      if (drawer.hidden) return;
+      detailRequest += 1;
+      drawer.hidden = true;
+      detailBackdrop.hidden = true;
+      document.body.classList.remove('detail-open');
+      root.inert = false;
+      restoreFocus();
+    }
+
+  async function loadTable(nextPage = 1) {
+    const request = ++tableRequest;
+    currentPage = nextPage;
+    const url = tableUrl(nextPage);
+    table.setAttribute('aria-busy', 'true');
+    try {
+      const response = await collectorFetch(url);
+      if (request !== tableRequest) return false;
+      if (!response.ok) {
+        throw new Error('Table unavailable');
+      }
+      const data = await response.json();
+      if (request !== tableRequest) return false;
+    renderTable(data);
+    return true;
+    } catch (error) {
+      if (request !== tableRequest) return false;
+      latestRows = [];
+      count.textContent = '';
+      table.innerHTML = '<p class="empty" role="status">Data unavailable for this view. Try Refresh data.</p>';
+      pagination.innerHTML = '';
+      return false;
+    } finally {
+      if (request === tableRequest) table.setAttribute('aria-busy', 'false');
+    }
+  }
+
+  async function loadCrowdSec() {
+    const base = `/log-collector/api/entities/${slug}/crowdsec/`;
+    const status = document.querySelector('#crowdsec-status');
+    const setup = document.querySelector('#crowdsec-setup');
+    const content = document.querySelector('#crowdsec-content');
+    if (!status) return;
+    try {
+      const response = await collectorFetch(`${base}connection/`);
+      const state = await response.json();
+      if (!response.ok) throw new Error(state.detail || 'CrowdSec status could not be checked.');
+      if (state.status === 'not_configured') {
+        status.textContent = 'Not configured. Connect CrowdSec to view detections and decisions.';
+        setup.hidden = false; content.hidden = true; return;
+      }
+      if (state.status === 'error') {
+        status.textContent = `Configured, but connection failed: ${state.detail}`;
+        setup.hidden = false; content.hidden = true; return;
+      }
+      status.textContent = `Connected to ${state.api_url}. CrowdSec decisions are reported here; firewall enforcement depends on your configured bouncer.`;
+      setup.hidden = true; content.hidden = false;
+      const [alertsResponse, decisionsResponse] = await Promise.all([
+        collectorFetch(`${base}alerts/`), collectorFetch(`${base}decisions/`)
+      ]);
+      const alerts = await alertsResponse.json(), decisions = await decisionsResponse.json();
+      crowdsecRows.alerts = alertsResponse.ok && Array.isArray(alerts.results) ? alerts.results : [];
+      crowdsecRows.decisions = decisionsResponse.ok && Array.isArray(decisions.results) ? decisions.results : [];
+      renderCrowdSecTable('alerts', crowdsecRows.alerts, alertsResponse.ok ? '' : (alerts.detail || 'Detections unavailable.'));
+      renderCrowdSecTable('decisions', crowdsecRows.decisions, decisionsResponse.ok ? '' : (decisions.detail || 'Decisions unavailable.'));
+    } catch (error) { status.textContent = error.message || 'CrowdSec status unavailable. Check the connection and try again.'; }
+  }
+
+  function renderCrowdSecTable(kind, rows, error = '') {
+    const isAlerts = kind === 'alerts';
+    const container = document.querySelector(`#crowdsec-${kind}`);
+    const pager = document.querySelector(`#crowdsec-${kind}-pagination`);
+    if (error) {
+      container.innerHTML = `<p role="alert">${escapeHtml(error)}</p>`;
+      pager.innerHTML = '';
+      return;
+    }
+    const pageCount = Math.max(1, Math.ceil(rows.length / crowdsecPageSize));
+    crowdsecPages[kind] = Math.min(Math.max(0, crowdsecPages[kind]), pageCount - 1);
+    const start = crowdsecPages[kind] * crowdsecPageSize;
+    const pageRows = rows.slice(start, start + crowdsecPageSize);
+    const head = isAlerts
+      ? '<tr><th scope="col">Detected</th><th scope="col">Scenario</th><th scope="col">Source IP</th><th scope="col">Reason</th></tr>'
+      : '<tr><th scope="col">Target</th><th scope="col">Type</th><th scope="col">Scenario</th><th scope="col">Duration</th><th scope="col">Action</th></tr>';
+    const body = pageRows.map(item => {
+      if (isAlerts) {
+        const source = item.source?.ip || item.source?.value || item.ip || '—';
+        return `<tr><td>${escapeHtml(item.created_at || item.start_at || item.updated_at || '—')}</td><td>${escapeHtml(item.scenario || item.name || 'Detection')}</td><td>${escapeHtml(source)}</td><td>${escapeHtml(item.reason || item.message || '—')}</td></tr>`;
+      }
+      const target = item.value || item.ip || '—';
+      const action = root.dataset.canManageCrowdsec === 'true' && target !== '—'
+        ? `<button class="view-button" type="button" data-crowdsec-unblock="${escapeHtml(target)}">Unblock</button>`
+        : '—';
+      return `<tr><td>${escapeHtml(target)}</td><td>${escapeHtml(item.type || '—')}</td><td>${escapeHtml(item.scenario || item.origin || '—')}</td><td>${escapeHtml(item.duration || '—')}</td><td>${action}</td></tr>`;
+    }).join('');
+    container.innerHTML = rows.length
+      ? `<div class="crowdsec-table-wrap"><table class="crowdsec-table"><thead>${head}</thead><tbody>${body}</tbody></table></div>`
+      : `<p class="empty">${isAlerts ? 'No detections returned.' : 'No active decisions.'}</p>`;
+    const first = rows.length ? start + 1 : 0;
+    const last = Math.min(start + crowdsecPageSize, rows.length);
+    pager.innerHTML = `<button class="view-button" type="button" data-crowdsec-page="${kind}" data-page-delta="-1" ${start === 0 ? 'disabled' : ''}>Previous</button><span>Showing ${first}–${last} of ${rows.length} · Page ${crowdsecPages[kind] + 1} of ${pageCount}</span><button class="view-button" type="button" data-crowdsec-page="${kind}" data-page-delta="1" ${crowdsecPages[kind] >= pageCount - 1 ? 'disabled' : ''}>Next</button>`;
+  }
+
+    function tableUrl(page, csv = false) {
+      const params = new URLSearchParams({q:search.value, page:String(page), page_size:pageSize.value});
+      if (incidentView() && securityFilter !== 'alerts') params.set('category', securityFilter);
+      if (csv) params.set('export', 'csv');
+      return `/log-collector/api/entities/${slug}/${endpoint()}/?${params.toString()}`;
+    }
+
+    function exportCurrentTable() {
+      window.location.href = tableUrl(currentPage, true);
+    }
+
+    function changeView(nextTab, nextFilter = securityFilter, pushHistory = true) {
+      viewStates.set(viewKey(), {q:search.value, size:pageSize.value, page:currentPage});
+      closeDetail();
+      tab = nextTab;
+      securityFilter = nextFilter;
+      const saved = viewStates.get(viewKey()) || {q:'', size:'25', page:1};
+      search.value = saved.q;
+      pageSize.value = saved.size;
+      securityFilters.hidden = tab !== 'access-logs';
+      document.querySelectorAll('[data-tab]').forEach(button => {
+        button.classList.toggle('active', button.dataset.tab === tab);
+        button.setAttribute('aria-pressed', String(button.dataset.tab === tab));
+      });
+      document.querySelectorAll('[data-security-filter]').forEach(button => button.setAttribute('aria-pressed', String(button.dataset.securityFilter === securityFilter)));
+      viewHeading.textContent = viewLabel();
+      const crowdsec = tab === 'crowdsec';
+      document.querySelector('#dashboard-layout').hidden = crowdsec;
+      const crowdsecPanel = document.querySelector('#crowdsec-panel');
+      if (crowdsecPanel) crowdsecPanel.hidden = !crowdsec;
+      if (crowdsec) loadCrowdSec(); else loadTable(saved.page);
+      const url = new URL(window.location.href);
+      url.searchParams.set('view', tab);
+      if (tab === 'access-logs') url.searchParams.set('security', securityFilter);
+      else url.searchParams.delete('security');
+      if (pushHistory) window.history.pushState({}, '', url);
+    }
+
+    document.querySelectorAll('[data-tab]').forEach(button => button.addEventListener('click', () => {
+      changeView(button.dataset.tab);
+    }));
+    window.addEventListener('popstate', () => {
+      const state = new URLSearchParams(window.location.search);
+      const view = state.get('view');
+      const filter = state.get('security');
+      changeView(['access-logs', 'geolocation', 'user-sessions', 'crowdsec'].includes(view) ? view : 'access-logs', ['alerts', 'unauthorized', 'malicious', 'all'].includes(filter) ? filter : 'alerts', false);
+    });
+    const crowdsecBlockForm = document.querySelector('#crowdsec-block-form');
+    if (crowdsecBlockForm) crowdsecBlockForm.addEventListener('submit', async event => {
+      event.preventDefault();
+      const data = Object.fromEntries(new FormData(crowdsecBlockForm));
+      const result = document.querySelector('#crowdsec-action-result');
+      try {
+        const response = await collectorFetch(`/log-collector/api/entities/${slug}/crowdsec/decisions/`, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(data)});
+        const payload = await response.json(); result.textContent = response.ok ? 'CrowdSec decision created.' : (payload.detail || 'Could not create decision.');
+        if (response.ok) { crowdsecBlockForm.reset(); loadCrowdSec(); }
+      } catch (error) { result.textContent = 'Could not create CrowdSec decision.'; }
+    });
+    const crowdsecPanel = document.querySelector('#crowdsec-panel');
+    if (crowdsecPanel) crowdsecPanel.addEventListener('click', async event => {
+      const pageButton = event.target.closest('[data-crowdsec-page]');
+      if (pageButton) {
+        const kind = pageButton.dataset.crowdsecPage;
+        crowdsecPages[kind] += Number(pageButton.dataset.pageDelta);
+        renderCrowdSecTable(kind, crowdsecRows[kind]);
+        return;
+      }
+      const button = event.target.closest('[data-crowdsec-unblock]'); if (!button) return;
+      const target = button.dataset.crowdsecUnblock.replace(/^Ip:/i, '');
+      if (!window.confirm(`Remove all CrowdSec decisions for ${target}?`)) return;
+      const response = await collectorFetch(`/log-collector/api/entities/${slug}/crowdsec/decisions/`, {method:'DELETE', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ip_address:target})});
+      const result = await response.json(); if (!response.ok) window.alert(result.detail || 'Could not remove decision.'); else loadCrowdSec();
+    });
+    document.querySelectorAll('[data-security-filter]').forEach(button => button.addEventListener('click', () => changeView('access-logs', button.dataset.securityFilter)));
+      {% if can_manage_blocks or can_white_flag %}
+    const blockDialog = document.querySelector('#block-dialog');
+    const blockForm = document.querySelector('#block-form');
+    const blockResult = document.querySelector('#block-result');
+    const blockLifetime = document.querySelector('#block-lifetime');
+    const blockDuration = document.querySelector('#block-duration');
+    let blockRow = null, blockAction = null, blockPending = false, blockTrigger = null;
+
+    table.addEventListener('click', event => {
+      const button = event.target.closest('[data-block-action], [data-white-flag-action]');
+      if (!button) return;
+      blockRow = latestRows[Number(button.dataset.rowIndex)];
+      if (!blockRow) return;
+      blockTrigger = button;
+      blockAction = button.dataset.blockAction || button.dataset.whiteFlagAction;
+      const ipAddress = rowIp(blockRow);
+      blockForm.reset();
+      blockResult.textContent = '';
+      document.querySelector('#block-title').textContent = `Confirm ${blockAction} IP`;
+      document.querySelector('#block-description').textContent = blockAction.includes('white_flag') ? `${blockAction === 'white_flag' ? 'Suppress security alerts for' : 'Stop suppressing security alerts for'} ${ipAddress} across Access Logs, User Sessions, Geolocation, and incident views.` : `${formatLabel(blockAction)} ${ipAddress} across this deployment. Django and Nginx enforcement may have different outcomes.`;
+      document.querySelector('#block-submit').textContent = `Confirm ${blockAction}`;
+      const needsDuration = blockAction === 'block';
+      document.querySelector('#block-duration-fields').hidden = !needsDuration;
+      blockDuration.disabled = !needsDuration;
+      blockDialog.showModal();
+      document.querySelector('#block-reason').focus();
+    });
+    blockLifetime.addEventListener('change', () => {
+      blockDuration.disabled = blockLifetime.value === 'permanent';
+    });
+    document.querySelector('#block-cancel').addEventListener('click', () => { if (!blockPending) blockDialog.close(); });
+    blockDialog.addEventListener('cancel', event => { if (blockPending) event.preventDefault(); });
+    blockDialog.addEventListener('close', () => {
+      (blockTrigger?.isConnected ? blockTrigger : refreshButton).focus();
+    });
+    blockForm.addEventListener('submit', async event => {
+      event.preventDefault();
+      if (blockPending || !blockForm.reportValidity()) return;
+      const reason = document.querySelector('#block-reason').value.trim();
+      if (!reason) { blockResult.textContent = 'A reason is required.'; document.querySelector('#block-reason').focus(); return; }
+      const payload = {reason};
+      if (blockAction === 'white_flag' || blockAction === 'remove_white_flag') {
+        payload.action = blockAction;
+        payload.ip_address = rowIp(blockRow);
+      } else if (blockAction === 'block') {
+        payload.ip_address = rowIp(blockRow);
+        if (incidentView()) payload.incident_id = blockRow.id;
+        else if (blockRow.ip_threat?.incident_id) payload.incident_id = blockRow.ip_threat.incident_id;
+        if (blockLifetime.value === 'permanent') payload.permanent = true;
+        else {
+          payload.duration_seconds = Number(blockDuration.value);
+          if (!Number.isSafeInteger(payload.duration_seconds) || payload.duration_seconds <= 0) { blockResult.textContent = 'Enter a positive whole number of seconds.'; return; }
+        }
+      }
+      const actionUrl = blockAction === 'white_flag' || blockAction === 'remove_white_flag' ? 'security-white-flags/' : blockAction === 'block' ? 'security-blocks/' : `security-blocks/${blockRow.block_id}/unblock/`;
+      blockPending = true;
+      const enabledControls = [...blockForm.elements].filter(control => !control.disabled);
+      enabledControls.forEach(control => { control.disabled = true; });
+      blockResult.textContent = 'Submitting…';
+      try {
+        const response = await collectorFetch(`/log-collector/api/entities/${slug}/${actionUrl}`, {
+          method:'POST', credentials:'same-origin',
+          headers:{'Content-Type':'application/json', 'X-CSRFToken':blockForm.querySelector('[name="csrfmiddlewaretoken"]').value},
+          body:JSON.stringify(payload)
+        });
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.detail || 'The action failed. Refresh and try again.');
+        latestRows.forEach(row => { if (rowIp(row) === rowIp(blockRow)) Object.assign(row, data); });
+        const message = blockAction.includes('white_flag') ? `White Flag ${blockAction === 'white_flag' ? 'enabled' : 'removed'} for ${rowIp(blockRow)}.` : `${formatLabel(blockAction)} request completed. ${blockState('django', data.django_state)}. ${blockState('nginx', data.nginx_state)}.`;
+        blockResult.textContent = message;
+        refreshStatus.textContent = message;
+        blockDialog.close();
+        await loadTable(currentPage);
+        if (document.activeElement === document.body) refreshButton.focus();
+      } catch (error) {
+        blockResult.textContent = error.message || 'Unable to submit. Try again.';
+      } finally {
+        blockPending = false;
+        enabledControls.forEach(control => { control.disabled = false; });
+      }
+    });
+    {% endif %}
+    {% if can_contain_users %}
+    const containDialog = document.querySelector('#contain-dialog');
+    const containForm = document.querySelector('#contain-form');
+    const containResult = document.querySelector('#contain-result');
+    let containRow = null, containPending = false, containTrigger = null;
+    table.addEventListener('click', event => {
+      const button = event.target.closest('[data-contain-action]');
+      if (!button) return;
+      containRow = latestRows[Number(button.dataset.rowIndex)];
+      if (!containRow?.ip_threat) return;
+      containTrigger = button;
+      containForm.reset();
+      containResult.textContent = '';
+      document.querySelector('#contain-description').textContent = `Deactivate ${containRow.user}, revoke all authentication state, and block ${containRow.ip_address}.`;
+      containDialog.showModal();
+      document.querySelector('#contain-reason').focus();
+    });
+    document.querySelector('#contain-cancel').addEventListener('click', () => {
+      if (!containPending) containDialog.close();
+    });
+    containDialog.addEventListener('cancel', event => {
+      if (containPending) event.preventDefault();
+    });
+    containDialog.addEventListener('close', () => {
+      (containTrigger?.isConnected ? containTrigger : refreshButton).focus();
+    });
+    containForm.addEventListener('submit', async event => {
+      event.preventDefault();
+      if (containPending || !containForm.reportValidity() || !containRow) return;
+      const payload = {
+        reason: document.querySelector('#contain-reason').value.trim(),
+        confirmation_username: document.querySelector('#contain-username').value,
+      };
+      if (!payload.reason) {
+        containResult.textContent = 'A reason is required.';
+        document.querySelector('#contain-reason').focus();
+        return;
+      }
+      containPending = true;
+      const enabledControls = [...containForm.elements].filter(control => !control.disabled);
+      enabledControls.forEach(control => { control.disabled = true; });
+      containResult.textContent = 'Applying containment…';
+      try {
+        const response = await collectorFetch(`/log-collector/api/entities/${slug}/user-sessions/${containRow.id}/contain/`, {
+          method:'POST', credentials:'same-origin',
+          headers:{'Content-Type':'application/json', 'X-CSRFToken':containForm.querySelector('[name="csrfmiddlewaretoken"]').value},
+          body:JSON.stringify(payload)
+        });
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.detail || 'Containment failed. Refresh and try again.');
+        const message = `Contained ${data.target_username}. ${data.warning}`;
+        containResult.textContent = message;
+        refreshStatus.textContent = message;
+        containDialog.close();
+        await loadTable(currentPage);
+      } catch (error) {
+        containResult.textContent = error.message || 'Unable to contain the account.';
+      } finally {
+        containPending = false;
+        enabledControls.forEach(control => { control.disabled = false; });
+      }
+    });
+    {% endif %}
+    table.addEventListener('click', event => {
+      const button = event.target.closest('[data-row-action="view"]');
+      if (button) openDetail(Number(button.dataset.rowIndex));
+    });
+    detailCloseButtons.forEach(button => button.addEventListener('click', closeDetail));
+    document.addEventListener('keydown', event => {
+      if (event.key === 'Escape' && !drawer.hidden) closeDetail();
+      if (event.key === 'Tab' && !drawer.hidden) {
+        const focusable = [...drawer.querySelectorAll('button, a[href], input, select, textarea, [tabindex="0"]')];
+        const first = focusable[0], last = focusable[focusable.length - 1];
+        if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }
+        if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
+      }
+    });
+    exportButton.addEventListener('click', exportCurrentTable);
+    search.addEventListener('search', () => loadTable(1));
+    search.addEventListener('change', () => loadTable(1));
+  pageSize.addEventListener('change', () => loadTable(1));
+  if (refreshButton) {
+    refreshButton.addEventListener('click', async () => {
+      refreshButton.disabled = true;
+      refreshStatus.textContent = 'Refreshing data…';
+      try {
+        const [metricsLoaded, tableLoaded] = await Promise.all([
+          loadMetrics(),
+          loadTable(currentPage),
+        ]);
+        refreshStatus.textContent = metricsLoaded && tableLoaded
+          ? 'Data refreshed.'
+          : 'Unable to refresh all data.';
+      } catch (error) {
+        refreshStatus.textContent = 'Unable to refresh data.';
+      } finally {
+        refreshButton.disabled = false;
+      }
+    });
+  }
+    const initialQuery = new URLSearchParams(window.location.search);
+    const initialView = initialQuery.get('view');
+    const initialFilter = initialQuery.get('security');
+    if (['alerts', 'unauthorized', 'malicious', 'all'].includes(initialFilter)) securityFilter = initialFilter;
+    search.value = initialQuery.get('q') || '';
+    document.querySelectorAll('[data-security-filter]').forEach(button => button.setAttribute('aria-pressed', String(button.dataset.securityFilter === securityFilter)));
+    loadMetrics().catch(renderMetricsUnavailable);
+    if (initialView === 'crowdsec' && document.querySelector('[data-tab="crowdsec"]')) changeView('crowdsec', securityFilter, false); else loadTable();
+
+    let refreshPromise = null, refreshTimer = null, pollingTimer = null, reconnectTimer = null;
+    let reconnectDelay = 1000, socket = null, stopped = false, refreshQueued = false;
+    async function refreshLiveData() {
+      if (stopped) return;
+      refreshQueued = true;
+      if (!refreshPromise) {
+        refreshPromise = (async () => {
+          try {
+            do {
+              refreshQueued = false;
+              const results = await Promise.allSettled([loadMetrics(), tab === 'crowdsec' ? loadCrowdSec() : loadTable(currentPage)]);
+              if (!stopped && results[0].status === 'rejected') renderMetricsUnavailable();
+            } while (refreshQueued && !stopped);
+          } finally { refreshPromise = null; }
+        })();
+      }
+      return refreshPromise;
+    }
+    function debounceRefresh() {
+      if (stopped) return;
+      clearTimeout(refreshTimer);
+      refreshTimer = setTimeout(() => { refreshTimer = null; refreshLiveData(); }, 300);
+    }
+    function startPolling() {
+      if (!stopped && !pollingTimer) pollingTimer = setInterval(refreshLiveData, 15000);
+    }
+    function connectSecurityEvents(refreshOnOpen = true) {
+      if (stopped || socket) return;
+      startPolling();
+      try {
+        const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+        const nextSocket = new WebSocket(`${protocol}//${window.location.host}/ws/log-collector/entities/${slug}/security/`);
+        socket = nextSocket;
+        nextSocket.onopen = () => {
+          if (stopped || socket !== nextSocket) return;
+          reconnectDelay = 1000;
+
+          refreshStatus.textContent = 'Live security updates connected. Refreshing metrics and table every 15 seconds.';
+          if (refreshOnOpen) debounceRefresh();
+        };
+        nextSocket.onmessage = () => { if (!stopped && socket === nextSocket) debounceRefresh(); };
+        nextSocket.onerror = () => { if (!stopped && socket === nextSocket) nextSocket.close(); };
+        nextSocket.onclose = () => {
+          if (stopped || socket !== nextSocket) return;
+          socket = null;
+          scheduleReconnect();
+        };
+      } catch (error) { scheduleReconnect(); }
+    }
+    function scheduleReconnect() {
+      if (stopped) return;
+      startPolling();
+      refreshStatus.textContent = 'Live updates disconnected. Polling every 15 seconds.';
+      clearTimeout(reconnectTimer);
+      reconnectTimer = setTimeout(() => { reconnectTimer = null; connectSecurityEvents(); }, reconnectDelay);
+      reconnectDelay = Math.min(reconnectDelay * 2, 60000);
+    }
+    connectSecurityEvents();
+    window.addEventListener('pagehide', () => {
+      stopped = true;
+      clearTimeout(refreshTimer); clearTimeout(reconnectTimer); clearInterval(pollingTimer);
+      refreshTimer = reconnectTimer = pollingTimer = null;
+      refreshQueued = false;
+      const previousSocket = socket;
+      socket = null;
+      if (previousSocket) {
+        previousSocket.onopen = previousSocket.onmessage = previousSocket.onerror = previousSocket.onclose = null;
+        previousSocket.close();
+      }
+    });
+    window.addEventListener('pageshow', event => {
+      if (!event.persisted || !stopped) return;
+      stopped = false;
+      reconnectDelay = 1000;
+      refreshLiveData();
+      connectSecurityEvents(false);
+    });
+  </script>
+</body>
+</html>

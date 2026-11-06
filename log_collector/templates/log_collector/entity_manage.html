@@ -1,0 +1,425 @@
+{% load static %}
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{ app_name }} Settings | {{ entity.name }}</title>
+  <style>
+    :root{--canvas:#f5f7f8;--surface:#fff;--ink:#17242c;--muted:#64757c;--line:#dbe3e6;--teal:#007a68;--red:#ad2f2f;--amber:#8a5a00}
+    *{box-sizing:border-box}
+    body{margin:0;background:var(--canvas);color:var(--ink);font:14px/1.45 Inter,Segoe UI,Arial,sans-serif}
+    main{min-width:0;max-width:1280px;width:100%;margin:auto;padding:34px 32px 56px}
+    a{color:#0b6399;text-decoration:none}
+    h1{margin:18px 0 6px;font-size:28px}
+    h2{margin:0 0 16px;font-size:20px}
+    h3{margin:20px 0 12px;font-size:16px}
+    .muted{color:var(--muted)}
+    .crumb{color:var(--muted)}
+    .panel{margin-top:22px;padding:22px;border:1px solid var(--line);border-radius:6px;background:var(--surface);box-shadow:0 12px 32px rgba(19,39,47,.06)}
+    .grid{display:grid;grid-template-columns:1fr;gap:18px}
+    form p{display:grid;grid-template-columns:190px minmax(0,1fr);align-items:center;gap:12px;margin:0 0 12px}
+    label{font-weight:650}
+    input,textarea,select{width:100%;min-height:38px;border:1px solid #bbc9cd;border-radius:5px;padding:8px;font:inherit}
+    textarea{min-height:84px}
+    button,.button{display:inline-flex;align-items:center;justify-content:center;min-height:36px;border:0;border-radius:4px;background:var(--teal);color:#fff;padding:0 13px;font:inherit;font-weight:650;cursor:pointer;text-decoration:none}
+    button:hover,.button:hover{background:#005f51;text-decoration:none}
+    button.danger{background:var(--red)}
+    button.secondary{background:#41545c}
+    .table-wrap{overflow:auto;border:1px solid var(--line);border-radius:6px}
+    table{width:100%;border-collapse:collapse;background:#fff}
+    th,td{padding:10px 12px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
+    th{font-size:12px;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);background:#f8fafb}
+    tr:last-child td{border-bottom:0}
+    code{font-family:Consolas,Monaco,monospace}
+    .token-once{margin:0 0 18px;padding:14px;border:1px solid #f1c36d;border-radius:6px;background:#fff8e7;color:#332100}
+    .token-once code{display:block;margin-top:8px;padding:10px;border-radius:4px;background:#fff;word-break:break-all}
+    .inline-actions{display:flex;gap:8px;flex-wrap:wrap}
+    .inline-actions form{margin:0}
+    .pagination{display:flex;justify-content:space-between;gap:12px;margin-top:12px;color:var(--muted)}
+    .message{margin:18px 0 0;padding:12px;border-radius:6px;font-weight:650}
+    .message.success{background:#e8f7ef;color:#136b4a}.message.error{background:#fde8ea;color:#8b2028}
+    .connection-note{padding:12px;border-left:4px solid var(--amber);background:#fff8e7;color:#5f4100}
+    .management-status{margin:16px 0 0;padding:12px;border-radius:6px;background:#e8f7ef;color:#136b4a;font-weight:650}
+    .management-status.is-error{background:#fde8ea;color:#8b2028}
+    [aria-busy="true"]{opacity:.7}
+    .settings-topbar{height:48px;display:flex;align-items:center;padding:0 24px;background:#203644;color:#fff;font-weight:650}
+    .settings-layout{display:grid;grid-template-columns:205px minmax(0,1fr);min-height:calc(100vh - 48px)}
+    .settings-nav{position:sticky;top:0;align-self:start;min-height:calc(100vh - 48px);padding:20px 12px;background:#111d2d}
+    .settings-nav a{display:block;padding:11px 13px;border-radius:5px;color:#d7e2ec;font-weight:600}
+    .settings-nav a:hover,.settings-nav a:focus-visible{background:#294b65;color:#fff;text-decoration:none}
+    .settings-nav .nav-heading{padding:8px 13px 14px;color:#94aabd;font-size:12px;text-transform:uppercase;letter-spacing:.06em}
+    .author-credit{display:block;color:var(--muted);font-weight:600}
+    .panel{scroll-margin-top:16px}
+    @media(max-width:800px){.settings-layout{display:block}.settings-nav{position:static;min-height:0;display:flex;gap:3px;overflow-x:auto;white-space:nowrap}.settings-nav .nav-heading{display:none}.settings-nav a{flex:none}main{padding:24px 18px}}
+    @media(max-width:650px){form p{grid-template-columns:1fr;gap:6px}}
+  </style>
+  <link rel="stylesheet" href="{% static 'log_collector/appearance.css' %}">
+</head>
+<body data-theme="{{ app_theme }}">
+  <div class="settings-topbar">{{ app_name }} · Settings</div>
+  <div class="settings-layout">
+  <nav class="settings-nav" aria-label="Collector settings">
+    <div class="nav-heading">Configuration</div>
+    {% if entity.is_hosting %}<a href="#general-settings">General Settings</a>{% endif %}
+    <a href="#entity-settings">Entity</a>
+    {% if entity.is_hosting %}<a href="#crowdsec-settings">CrowdSec</a>{% endif %}
+    <a href="#api-access">API Access</a>
+    <a href="#integrated-domains">Domains</a>
+  </nav>
+  <main>
+    <a class="crumb" href="{% url 'log_collector:entity_selection' %}">&larr; {{ app_name }}</a>
+    <h1>{{ app_name }} Settings</h1>
+    <p class="muted">{{ entity.get_entity_type_display }}</p>
+
+    {% if messages %}
+      {% for message in messages %}<p class="message {{ message.tags }}" role="status">{{ message }}</p>{% endfor %}
+    {% endif %}
+    <p id="management-status" class="management-status" role="status" aria-live="polite" hidden></p>
+
+    <section class="grid">
+      <div id="entity-settings" class="panel">
+        <h2>Entity Settings</h2>
+        <form method="post">
+          {% csrf_token %}
+          {{ entity_form.non_field_errors }}
+          <h3>Entity Details</h3>
+          {{ entity_form.name.as_field_group }}
+          {{ entity_form.slug.as_field_group }}
+          {{ entity_form.is_active.as_field_group }}
+          {% if not entity.is_hosting %}
+            <h3>Remote Connection</h3>
+            <p class="muted">Connect this entity to any compatible remote Log Collector.</p>
+            {{ entity_form.api_base_url.as_field_group }}
+            {{ entity_form.remote_entity_slug.as_field_group }}
+            {{ entity_form.remote_api_key.as_field_group }}
+          {% endif %}
+          <div class="inline-actions"><button type="submit" name="test_connection" class="secondary" data-management-action="test_connection">{% if entity.is_hosting %}Test local collector{% else %}Test connection{% endif %}</button></div>
+          <h3>Endpoint Options</h3>
+          {{ entity_form.access_logs_enabled.as_field_group }}
+          {{ entity_form.geolocation_enabled.as_field_group }}
+          {{ entity_form.user_sessions_enabled.as_field_group }}
+          {{ entity_form.enable_api_endpoint.as_field_group }}
+          <button name="save_entity" data-management-action="save_entity">Save entity settings</button>
+        </form>
+      </div>
+
+      {% if settings_form %}
+        <div id="general-settings" class="panel">
+          <h2>General Settings</h2>
+          <form method="post">
+            {% csrf_token %}
+            {{ settings_form.display_name.as_field_group }}
+            {{ settings_form.theme.as_field_group }}
+            <p class="author-credit">Developed by: CodefilterPH | Euge</p>
+            <h3>Local Collection</h3>
+            {{ settings_form.nginx_access_log_paths.as_field_group }}
+            {{ settings_form.sync_cooldown_seconds.as_field_group }}
+            {{ settings_form.max_lines_per_sync.as_field_group }}
+            {{ settings_form.retention_days.as_field_group }}
+            <button name="save_settings">Save application settings</button>
+          </form>
+        </div>
+      {% endif %}
+
+      {% if entity.is_hosting %}
+        <div id="crowdsec-settings" class="panel">
+          <h2>CrowdSec Integration</h2>
+          {% if crowdsec_connection %}
+            <p class="connection-note">Configured for {{ crowdsec_connection.api_url }}. Check live connection health and review detections on the dashboard’s CrowdSec tab.</p>
+          {% else %}
+            <p class="connection-note">Not configured. Enter the CrowdSec Local API credentials below.</p>
+          {% endif %}
+          <form method="post">
+            {% csrf_token %}
+            <p><label for="crowdsec-api-url">Local API URL</label><input id="crowdsec-api-url" name="crowdsec_api_url" type="url" maxlength="500" value="{{ crowdsec_connection.api_url|default:'' }}" placeholder="http://127.0.0.1:8080" required></p>
+            <p><label for="crowdsec-machine-id">Machine ID</label><input id="crowdsec-machine-id" name="crowdsec_machine_id" maxlength="255" value="{{ crowdsec_connection.machine_id|default:'' }}" autocomplete="username" required></p>
+            <p><label for="crowdsec-password">Machine password{% if crowdsec_connection %} (leave blank to keep saved password){% endif %}</label><input id="crowdsec-password" name="crowdsec_password" type="password" maxlength="1000" autocomplete="new-password" {% if not crowdsec_connection %}required{% endif %}></p>
+            <p class="muted">The password is encrypted in the application database and never shown again. Remote API URLs must use HTTPS; loopback HTTP is allowed for same-host setups.</p>
+            <button type="submit" name="save_crowdsec_connection">Test and save connection</button>
+          </form>
+          {% if crowdsec_connection %}
+            <form method="post" onsubmit="return confirm('Remove the saved CrowdSec connection?');">
+              {% csrf_token %}
+              <button class="danger" type="submit" name="delete_crowdsec_connection">Remove CrowdSec connection</button>
+            </form>
+          {% endif %}
+        </div>
+      {% endif %}
+    </section>
+
+    <section id="api-access" class="panel">
+      <h2>API Endpoints</h2>
+      {% if not entity.is_hosting and not entity.api_base_url %}<p class="connection-note">Set a remote collector base URL before direct endpoint URLs can be generated.</p>{% endif %}
+      <div class="table-wrap"><table><thead><tr><th>Method</th><th>Resource</th><th>URL</th><th>Enabled</th></tr></thead><tbody>
+        {% for endpoint in endpoints %}<tr><td>{{ endpoint.method }}</td><td>{{ endpoint.label }}</td><td>{% if endpoint.url %}<code>{{ endpoint.url }}</code>{% else %}<span class="muted">Configure remote connection</span>{% endif %}</td><td>{{ endpoint.enabled|yesno:"Yes,No" }}</td></tr>{% endfor %}
+      </tbody></table></div>
+    </section>
+
+    <section id="api-token-panel" class="panel">
+      <h2>Collector API Tokens</h2>
+      <div id="generated-token" class="token-once" {% if not generated_token %}hidden{% endif %}>
+        {% if generated_token %}
+          <strong>Copy this token now. It will not be shown again.</strong>
+          <code id="generated-token-value">{{ generated_token }}</code>
+        {% else %}
+          <strong>Copy a newly generated token now. It will not be shown again.</strong>
+          <code id="generated-token-value"></code>
+        {% endif %}
+      </div>
+      <form method="post">
+        {% csrf_token %}
+        {{ token_form.as_p }}
+        <button name="create_token" data-management-action="create_token">Generate token</button>
+      </form>
+
+      <h3>Issued Tokens</h3>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>Prefix</th>
+              <th>Status</th>
+              <th>Restrictions</th>
+              <th>Last used</th>
+              <th>Usage</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for token in tokens %}
+              <tr>
+                <td>{{ token.name }}</td>
+                <td><code>{{ token.key_prefix }}</code></td>
+                <td>{% if token.is_usable %}Active{% else %}Inactive{% endif %}</td>
+                <td>
+                  {% if token.allowed_ip_address %}IP {{ token.allowed_ip_address }}<br>{% endif %}
+                  {% if token.allowed_origin_domain %}Origin {{ token.allowed_origin_domain }}{% endif %}
+                  {% if not token.allowed_ip_address and not token.allowed_origin_domain %}<span class="muted">None</span>{% endif %}
+                </td>
+                <td>
+                  {% if token.last_used_at %}
+                    {{ token.last_used_at }}<br><span class="muted">{{ token.last_used_ip|default:"" }} {{ token.last_used_origin_domain }}</span>
+                  {% else %}
+                    <span class="muted">Never</span>
+                  {% endif %}
+                </td>
+                <td>{{ token.usage_count }}</td>
+                <td>
+                  <div class="inline-actions">
+                    <form method="post">
+                      {% csrf_token %}
+                      <input type="hidden" name="token_id" value="{{ token.id }}">
+                      <button class="secondary" name="rotate_token" data-management-action="rotate_token">Rotate</button>
+                    </form>
+                    {% if token.is_active %}
+                      <form method="post">
+                        {% csrf_token %}
+                        <input type="hidden" name="token_id" value="{{ token.id }}">
+                        <button class="danger" name="revoke_token" data-management-action="revoke_token">Revoke</button>
+                      </form>
+                    {% endif %}
+                    <form method="post">
+                      {% csrf_token %}
+                      <input type="hidden" name="token_id" value="{{ token.id }}">
+                      <button class="danger" name="delete_token" data-management-action="delete_token">Delete token</button>
+                    </form>
+                  </div>
+                </td>
+              </tr>
+            {% empty %}
+              <tr><td colspan="7">No collector tokens generated.</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+
+      <h3>Recent Token Usage</h3>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>When</th>
+              <th>Token</th>
+              <th>Outcome</th>
+              <th>Caller</th>
+              <th>Request</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for usage in recent_token_usage %}
+              <tr>
+                <td>{{ usage.created_at }}</td>
+                <td>{{ usage.token_name|default:usage.token_prefix }}</td>
+                <td>{{ usage.outcome }}{% if usage.denial_reason %}<br><span class="muted">{{ usage.denial_reason }}</span>{% endif %}</td>
+                <td>{{ usage.ip_address|default:"" }}<br><span class="muted">{{ usage.origin_domain|default:usage.request_host }}</span></td>
+                <td>{{ usage.method }} <code>{{ usage.path }}</code></td>
+              </tr>
+            {% empty %}
+              <tr><td colspan="5">No token usage recorded.</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% if recent_token_usage.paginator.count %}
+        <nav class="pagination" aria-label="Token usage pages">
+          <span>{{ recent_token_usage.start_index }}-{{ recent_token_usage.end_index }} of {{ recent_token_usage.paginator.count }}</span>
+          <span>
+            {% if recent_token_usage.has_previous %}<a href="?usage_page={{ recent_token_usage.previous_page_number }}">Previous</a>{% endif %}
+            {% if recent_token_usage.has_next %}<a href="?usage_page={{ recent_token_usage.next_page_number }}">Next</a>{% endif %}
+          </span>
+        </nav>
+      {% endif %}
+    </section>
+
+    <section id="integrated-domains" class="panel">
+      <h2>Integrated Domains</h2>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr><th>Name</th><th>Domain</th><th>Active</th><th></th></tr>
+          </thead>
+          <tbody>
+            {% for domain in domains %}
+              <tr>
+                <td>{{ domain.name }}</td>
+                <td>{{ domain.domain }}</td>
+                <td>{{ domain.is_active|yesno:"Yes,No" }}</td>
+                <td>
+                  <form method="post" action="{% url 'log_collector:domain_delete' entity.slug domain.id %}">
+                    {% csrf_token %}
+                    <button class="danger">Delete</button>
+                  </form>
+                </td>
+              </tr>
+            {% empty %}
+              <tr><td colspan="4">No domains configured.</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% if domains.paginator.count %}
+        <nav class="pagination" aria-label="Integrated domains pages">
+          <span>{{ domains.start_index }}-{{ domains.end_index }} of {{ domains.paginator.count }}</span>
+          <span>
+            {% if domains.has_previous %}<a href="?domains_page={{ domains.previous_page_number }}">Previous</a>{% endif %}
+            {% if domains.has_next %}<a href="?domains_page={{ domains.next_page_number }}">Next</a>{% endif %}
+          </span>
+        </nav>
+      {% endif %}
+      <h3>Add domain</h3>
+      <form method="post">
+        {% csrf_token %}
+        {{ domain_form.as_p }}
+        <button name="add_domain">Add domain</button>
+      </form>
+    </section>
+
+    {% if request.user.is_superuser and not entity.is_hosting %}
+      <section class="panel">
+        <form method="post" action="{% url 'log_collector:entity_delete' entity.slug %}">
+          {% csrf_token %}
+          <button class="danger">Delete integration</button>
+        </form>
+      </section>
+    {% endif %}
+  </main>
+  </div>
+  <script>
+    (() => {
+      const ajaxActions = new Set(["test_connection", "save_entity", "create_token", "rotate_token", "revoke_token", "delete_token"]);
+      const tokenActions = new Set(["create_token", "rotate_token", "revoke_token", "delete_token"]);
+      const status = document.getElementById("management-status");
+
+      function setStatus(message, isError = false) {
+        status.textContent = message;
+        status.hidden = false;
+        status.classList.toggle("is-error", isError);
+      }
+
+      function clearFieldError(field) {
+        if (!field || typeof field.removeAttribute !== "function") return;
+        field.removeAttribute("aria-invalid");
+        if (typeof field.setCustomValidity === "function") field.setCustomValidity("");
+      }
+
+      function clearFieldErrors(form) {
+        form.querySelectorAll("[aria-invalid='true']").forEach(clearFieldError);
+      }
+
+      function showFieldErrors(form, errors) {
+        Object.entries(errors || {}).forEach(([name, details]) => {
+          const field = form.querySelector(`[name$="-${name}"]`);
+          if (!field) return;
+          const message = details.map((detail) => detail.message).join(" ");
+          field.setCustomValidity(message);
+          field.setAttribute("aria-invalid", "true");
+        });
+      }
+
+      async function refreshTokenPanel() {
+        const response = await window.fetchWithAuth(window.location.href, {
+          headers: {"X-Requested-With": "XMLHttpRequest"},
+        });
+        if (!response.ok) throw new Error("Unable to refresh token panel.");
+        const documentFragment = new DOMParser().parseFromString(await response.text(), "text/html");
+        const replacement = documentFragment.getElementById("api-token-panel");
+        const current = document.getElementById("api-token-panel");
+        if (!replacement || !current) throw new Error("Unable to refresh token panel.");
+        current.replaceWith(replacement);
+      }
+
+      function showGeneratedToken(rawToken) {
+        if (!rawToken) return;
+        const container = document.getElementById("generated-token");
+        const value = document.getElementById("generated-token-value");
+        if (!container || !value) return;
+        value.textContent = rawToken;
+        container.hidden = false;
+      }
+
+      document.addEventListener("input", (event) => clearFieldError(event.target));
+      document.addEventListener("change", (event) => clearFieldError(event.target));
+
+      document.addEventListener("submit", async (event) => {
+        const form = event.target;
+        const submitter = event.submitter;
+        const action = submitter && submitter.dataset.managementAction;
+        if (!(form instanceof HTMLFormElement) || !ajaxActions.has(action)) return;
+        if (action === "delete_token" && !window.confirm("Delete this token? This only deletes the token record.")) {
+          event.preventDefault();
+          return;
+        }
+        event.preventDefault();
+        clearFieldErrors(form);
+        submitter.disabled = true;
+        form.setAttribute("aria-busy", "true");
+        try {
+          const data = new FormData(form);
+          data.set(submitter.name, submitter.value || "1");
+          const response = await window.fetchWithAuth(form.action || window.location.href, {
+            method: "POST",
+            body: data,
+            headers: {"X-Requested-With": "XMLHttpRequest", "Accept": "application/json"},
+          });
+          const result = await response.json().catch(() => ({}));
+          if (!response.ok || !result.ok) {
+            showFieldErrors(form, result.errors);
+            setStatus(result.message || "The action could not be completed.", true);
+            return;
+          }
+          if (tokenActions.has(action)) await refreshTokenPanel();
+          showGeneratedToken(result.raw_token);
+          setStatus(result.message);
+        } catch (error) {
+          setStatus("The action could not be completed. Please try again.", true);
+        } finally {
+          submitter.disabled = false;
+          form.removeAttribute("aria-busy");
+        }
+      });
+    })();
+  </script>
+</body>
+</html>

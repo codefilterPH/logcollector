@@ -1,0 +1,51 @@
+[build-system]
+requires = ["setuptools>=77.0.3", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "logcollector"
+version = "0.1.0"
+description = "Django Nginx log collection, security monitoring, and remote collector dashboards"
+readme = "README.md"
+requires-python = ">=3.12,<3.14"
+authors = [{name = "CodefilterPH | Euge"}]
+classifiers = [
+    "Framework :: Django",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: System :: Logging",
+]
+dependencies = [
+    "Django>=6.0,<6.1",
+    "channels>=4.2,<5",
+    "celery>=5.5,<6",
+    "djangorestframework>=3.16,<4",
+    "requests>=2.32,<3",
+    "cryptography>=44,<47",
+]
+
+[project.optional-dependencies]
+redis = ["channels-redis>=4.2,<5"]
+asgi = ["daphne>=4.2,<5"]
+
+[project.urls]
+Documentation = "https://github.com/codefilterPH/logcollector/tree/main/log_collector/docs"
+Source = "https://github.com/codefilterPH/logcollector"
+
+[tool.setuptools]
+include-package-data = true
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["log_collector", "log_collector.*", "crowdsec_integration", "crowdsec_integration.*"]
+exclude = ["log_collector.tests", "log_collector.tests.*"]
+
+[tool.setuptools.package-data]
+log_collector = [
+    "docs/installation.md",
+    "docs/configuration.md",
+    "docs/api.md",
+    "docs/operations-guide.md",
+    "templates/log_collector/*.html",
+    "static/log_collector/*.css",
+]

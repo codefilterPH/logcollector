@@ -1,0 +1,99 @@
+{% load static %}
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Security incident report | {{ entity.name }} | {{ app_name }}</title>
+  <style>
+    :root { --ink:#17242c; --danger:#b4232f; --danger-bg:#fde8ea; --line:#c8d1d5; --surface-soft:#f4f6f7; --muted:#52646d; --focus:#005f51; }
+    body { max-width: 1000px; margin: 32px auto; padding: 0 24px; color:var(--ink); font: 16px/1.45 Inter, Segoe UI, Arial, sans-serif; }
+    h1 { color:var(--danger); }
+    .warning { border: 3px solid var(--danger); background:var(--danger-bg); padding: 16px; font-weight: 700; }
+    table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+    th, td { padding: 10px; border: 1px solid var(--line); text-align: left; vertical-align: top; overflow-wrap: anywhere; }
+    th { background:var(--surface-soft); }
+    .muted { color:var(--muted); }
+    .table-wrap { overflow-x:auto; max-width:100%; }
+    :focus-visible { outline:2px solid var(--focus); outline-offset:3px; }
+    @media print { body { max-width: none; margin: 0; padding:0; font-size:10pt; } .no-print { display: none; } .table-wrap { overflow:visible; } table { table-layout:fixed; } th, td { padding:5px; } thead { display:table-header-group; } tr { break-inside:avoid; } }
+  </style>
+  <link rel="stylesheet" href="{% static 'log_collector/appearance.css' %}">
+</head>
+<body data-theme="{{ app_theme }}">
+  <p class="no-print"><a href="{% url 'log_collector:entity_dashboard' entity.slug %}">Back to dashboard</a> · <button type="button" onclick="window.print()">Print report</button></p>
+  <h1>Security incident report</h1>
+  <p><strong>Entity:</strong> {{ entity.name }} ({{ entity.slug }})<br><strong>Generated:</strong> {{ generated_at }}</p>
+  {% if error %}
+    <p class="warning">{{ error }}</p>
+  {% else %}
+    <p class="warning">Grouped incidents are suspicious evidence—not proof of compromise. Review original evidence before taking action.</p>
+    <h2>Grouped incidents</h2>
+    <p>{{ incident_count }} incident{{ incident_count|pluralize }}. Showing up to 100 most recently seen incidents, with up to 100 evidence rows per incident.</p>
+    <div class="table-wrap" tabindex="0" aria-label="Grouped incident report table">
+      <table>
+        <thead><tr><th scope="col">Category / severity</th><th scope="col">Source IP</th><th scope="col">Username (URL)</th><th scope="col">Counts / latest target</th><th scope="col">Last seen</th><th scope="col">Application block</th><th scope="col">Edge block</th></tr></thead>
+        <tbody>
+          {% for incident in report_incidents %}
+          <tr data-incident-id="{{ incident.id }}">
+            <td>{{ incident.category }} / {{ incident.severity }}</td>
+            <td>{{ incident.source_ip }}</td>
+            <td>{{ incident.url_username|default:"—" }}</td>
+            <td>{{ incident.request_count }} requests / {{ incident.evidence_count }} evidence rows<br>{{ incident.target_family }}</td>
+            <td>{{ incident.last_seen_display }}</td>
+            <td>Django: {{ incident.django_state }}{% if incident.expires_at %}<br>Expires {{ incident.expires_at }}{% endif %}</td>
+            <td>Nginx: {{ incident.nginx_state }}</td>
+          </tr>
+          {% empty %}<tr><td colspan="7">No grouped incidents recorded.</td></tr>{% endfor %}
+        </tbody>
+      </table>
+    </div>
+    <h2>Incident evidence</h2>
+    {% for incident in report_incidents %}
+      <h3>Incident {{ incident.id }} — {{ incident.source_ip }}</h3>
+      <p>Showing {{ incident.evidence|length }} of {{ incident.evidence_count }} evidence rows. <a class="no-print" href="{% url 'log_collector:entity_dashboard' entity.slug %}?security=alerts&amp;q={{ incident.source_ip|urlencode }}">View all evidence in dashboard</a></p>
+      <div class="table-wrap" tabindex="0" aria-label="Evidence for incident {{ incident.id }}">
+        <table>
+          <thead><tr><th scope="col">Observed</th><th scope="col">Source</th><th scope="col">Method / status</th><th scope="col">Target family</th><th scope="col">Reason</th></tr></thead>
+          <tbody>{% for evidence in incident.evidence %}<tr data-evidence-id="{{ evidence.id }}"><td>{{ evidence.observed_at }}</td><td>{{ evidence.source }}</td><td>{{ evidence.method }} / {{ evidence.status_code }}</td><td>{{ evidence.target_family }}</td><td>{{ evidence.reason }}</td></tr>{% empty %}<tr><td colspan="5">No evidence rows available.</td></tr>{% endfor %}</tbody>
+        </table>
+      </div>
+    {% endfor %}
+    <h2>Current alert evidence</h2>
+    <p class="warning">This is a concurrency heuristic, not proof of account compromise. Verify the sessions with the account owner and identity/audit logs.</p>
+    <div class="table-wrap" tabindex="0" aria-label="Current security alert evidence">
+      <table>
+        <thead><tr><th scope="col">Observed</th><th scope="col">Source</th><th scope="col">Account / client</th><th scope="col">Evidence</th></tr></thead>
+        <tbody>
+          {% for alert in security_summary.alerts %}
+          {% if alert.source == "user_session" and alert.rule_diagnostics %}
+          <tr>
+            <td>{{ alert.timestamp }}</td>
+            <td>{{ alert.source }}</td>
+            <td>{% if alert.user %}{{ alert.user }}<br>{% endif %}{{ alert.ip_address }}{% if alert.user_agent %}<br>{{ alert.user_agent }}{% endif %}</td>
+            <td>
+              {{ alert.reasons|join:"; " }}
+              <p><strong>Session rule diagnostics</strong><br>
+                {{ alert.rule_diagnostics.session_count }} session records (threshold: {{ alert.rule_diagnostics.required_session_count }});
+                {{ alert.rule_diagnostics.distinct_ip_count }} distinct IPs (threshold: {{ alert.rule_diagnostics.required_ip_count }});
+                {{ alert.rule_diagnostics.distinct_user_agent_count }} user agents (threshold: {{ alert.rule_diagnostics.required_user_agent_count }});
+                activity window: {{ alert.rule_diagnostics.window_minutes }} minutes.
+              </p>
+            </td>
+          </tr>
+          {% endif %}
+          {% empty %}<tr><td colspan="4">No current alert evidence.</td></tr>{% endfor %}
+        </tbody>
+      </table>
+    </div>
+    <h2>Detection rules</h2>
+    <ul>
+      <li>Known scanner user agents, including <code>burp suite</code>, sqlmap, Nikto, Nmap, Masscan, ZGrab, Acunetix, WPScan, Nessus, OpenVAS, Gobuster, DirBuster, and ffuf.</li>
+      <li>Decoded traversal, <code>.env</code>, <code>.git</code>, or <code>/etc/passwd</code> probes.</li>
+      <li>At least 20 client-error responses across at least 10 distinct paths from one IP in five minutes.</li>
+      <li>At least 3 active session records for one account, each last seen in the last 15 minutes, across at least 3 IPs and 3 user agents.</li>
+    </ul>
+    <p class="muted">{{ security_summary.critical_alert_count }} critical record{{ security_summary.critical_alert_count|pluralize }} detected in the most recent {{ security_summary.window_minutes }} minutes.</p>
+  {% endif %}
+</body>
+</html>

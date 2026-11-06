@@ -1,0 +1,45 @@
+{% load static %}
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Add {{ app_name }} Entity</title>
+  <style>
+    :root{--canvas:#f5f7f8;--surface:#fff;--ink:#17242c;--muted:#64757c;--line:#dbe3e6;--teal:#007a68}
+    *{box-sizing:border-box} body{margin:0;background:var(--canvas);color:var(--ink);font:14px/1.45 Inter,Segoe UI,Arial,sans-serif}
+    main{max-width:760px;margin:auto;padding:40px 24px} a{color:#0b6399;text-decoration:none}.crumb{color:var(--muted)}
+    h1{margin:20px 0 8px;font-size:28px} h2{margin:26px 0 12px;font-size:18px}.panel{margin-top:26px;padding:24px;border:1px solid var(--line);border-radius:6px;background:var(--surface);box-shadow:0 12px 32px rgba(19,39,47,.06)}
+    form p{display:grid;grid-template-columns:220px minmax(0,1fr);align-items:center;gap:12px;margin:0 0 16px} label{font-weight:650}input,textarea,select{width:100%;min-height:38px;border:1px solid #bbc9cd;border-radius:5px;padding:8px;font:inherit}
+    button{min-height:38px;border:0;border-radius:4px;background:var(--teal);color:#fff;padding:0 14px;font:inherit;font-weight:650;cursor:pointer}button:hover{background:#005f51}@media(max-width:600px){main{padding:24px 14px}form p{grid-template-columns:1fr;gap:6px}}
+  </style>
+  <link rel="stylesheet" href="{% static 'log_collector/appearance.css' %}">
+</head>
+<body data-theme="{{ app_theme }}">
+  <main>
+    <a class="crumb" href="{% url 'log_collector:entity_selection' %}">All entities</a>
+    <h1>{% if creating %}Add integration{% else %}Edit entity{% endif %}</h1>
+    <p style="color:var(--muted);margin:0">Create a connected entity for any compatible remote Log Collector.</p>
+    <section class="panel">
+      <form method="post">
+        {% csrf_token %}
+        <h2>Entity Details</h2>
+        {{ form.name.as_field_group }}
+        {{ form.slug.as_field_group }}
+        {{ form.is_active.as_field_group }}
+        <h2>Remote Connection</h2>
+        <p style="color:var(--muted)">Generate a token in the remote collector, then enter its base URL, entity slug, and token here.</p>
+        {{ form.api_base_url.as_field_group }}
+        {{ form.remote_entity_slug.as_field_group }}
+        {{ form.remote_api_key.as_field_group }}
+        <h2>Endpoint Options</h2>
+        {{ form.access_logs_enabled.as_field_group }}
+        {{ form.geolocation_enabled.as_field_group }}
+        {{ form.user_sessions_enabled.as_field_group }}
+        {{ form.enable_api_endpoint.as_field_group }}
+        <button type="submit">Save entity</button>
+      </form>
+    </section>
+  </main>
+</body>
+</html>

@@ -1,0 +1,46 @@
+/* Shared appearance for the collector's management and report pages. */
+body[data-theme="dark"] {
+  --canvas:#111b22; --surface:#1c2a33; --surface-soft:#253640;
+  --ink:#e9f1f4; --muted:#b3c3ca; --line:#40535d;
+  --teal:#42c9ad; --focus:#65d9c3; --danger:#ff8991;
+  --danger-bg:#4b252b; --amber:#f2c16b;
+}
+body[data-theme="green"] {
+  --canvas:#edf5ee; --surface:#fff; --surface-soft:#e2f1e5;
+  --ink:#173624; --muted:#466c53; --line:#b7d5bd;
+  --teal:#26754b; --focus:#26754b; --danger:#a92b35;
+  --danger-bg:#fbe6e8; --amber:#8a5a00;
+}
+body[data-theme="command-center"] {
+  --canvas:#0d1924; --surface:#172838; --surface-soft:#20384a;
+  --ink:#e3f3ff; --muted:#a7c4d6; --line:#36546a;
+  --teal:#32b6cb; --focus:#6ed8e7; --danger:#ff8d91;
+  --danger-bg:#482831; --amber:#ffc971;
+}
+body[data-theme="dark"], body[data-theme="green"],
+body[data-theme="command-center"] {
+  background:var(--canvas); color:var(--ink);
+}
+body[data-theme="dark"] a, body[data-theme="command-center"] a {
+  color:#8bdaf0;
+}
+body[data-theme="dark"] input, body[data-theme="dark"] textarea,
+body[data-theme="dark"] select, body[data-theme="command-center"] input,
+body[data-theme="command-center"] textarea, body[data-theme="command-center"] select {
+  background:var(--surface); color:var(--ink); border-color:var(--line);
+}
+body[data-theme="dark"] table, body[data-theme="command-center"] table {
+  background:var(--surface); color:var(--ink);
+}
+body[data-theme="dark"] th, body[data-theme="command-center"] th {
+  background:var(--surface-soft); color:var(--ink);
+}
+body[data-theme="dark"] .token-once, body[data-theme="dark"] .connection-note,
+body[data-theme="command-center"] .token-once,
+body[data-theme="command-center"] .connection-note {
+  background:var(--surface-soft); color:var(--ink); border-color:var(--line);
+}
+body[data-theme="dark"] .token-once code,
+body[data-theme="command-center"] .token-once code {
+  background:var(--surface); color:var(--ink);
+}
