@@ -5,6 +5,7 @@ from urllib.parse import parse_qsl
 
 from channels.db import database_sync_to_async
 from channels.generic.websocket import AsyncWebsocketConsumer
+from log_collector.access import has_dashboard_access
 
 from log_collector.models import LogCollectorEntity
 from log_collector.security_events import sanitize_security_event, security_group_name
@@ -20,7 +21,7 @@ class SecurityEventsConsumer(AsyncWebsocketConsumer):
                 or any(key.lower() in credentials for key, _ in parse_qsl(query, keep_blank_values=True))):
             await self.close(code=4401)
             return
-        if not await self.is_data_center_member(user):
+        if not await self.is_dashboard_member(user):
             await self.close(code=4403)
             return
         self.entity_id = await self.active_entity_id(self.scope["url_route"]["kwargs"]["slug"])
@@ -32,8 +33,8 @@ class SecurityEventsConsumer(AsyncWebsocketConsumer):
         await self.accept()
 
     @database_sync_to_async
-    def is_data_center_member(self, user):
-        return user.groups.filter(name="DATA_CENTER").exists()
+    def is_dashboard_member(self, user):
+        return has_dashboard_access(user)
 
     @database_sync_to_async
     def active_entity_id(self, slug):

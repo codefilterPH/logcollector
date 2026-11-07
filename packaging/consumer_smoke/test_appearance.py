@@ -9,7 +9,7 @@ from log_collector.models import LogCollectorEntity, LogCollectorSettings
 class CollectorAppearanceTests(TestCase):
     @classmethod
     def setUpTestData(cls):
-        cls.group = Group.objects.create(name="DATA_CENTER")
+        cls.group, _ = Group.objects.get_or_create(name="DATA_CENTER")
         cls.superuser = get_user_model().objects.create_superuser(
             username="operator", password="password", email="operator@example.test"
         )

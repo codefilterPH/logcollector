@@ -7,6 +7,7 @@ from django.urls import Resolver404, resolve
 from rest_framework.authentication import SessionAuthentication
 from rest_framework.exceptions import AuthenticationFailed
 from rest_framework.permissions import BasePermission, SAFE_METHODS
+from log_collector.access import has_dashboard_access
 
 from log_collector.services.client_ip import resolve_client_ip as get_client_ip
 
@@ -61,7 +62,7 @@ def _has_dashboard_session(request):
         and isinstance(
             getattr(request, "successful_authenticator", None), SessionAuthentication
         )
-        and user.groups.filter(name="DATA_CENTER").exists()
+        and has_dashboard_access(user)
     ):
         return False
     origin = request.META.get("HTTP_ORIGIN") or request.META.get("HTTP_REFERER")
@@ -150,7 +151,7 @@ def audit_permission_denial(request, view, reason):
 
 
 class LogCollectorApiTokenPermission(BasePermission):
-    """Allow same-origin DATA_CENTER sessions or entity-scoped read-only tokens."""
+    """Allow same-origin dashboard sessions or entity-scoped read-only tokens."""
 
     message = "Authentication credentials were not provided."
 

@@ -56,15 +56,18 @@ directly to Django. Leave it empty when Django receives requests directly. Set
 the example trusts loopback only.
 
 Keep Django's `auth`, `contenttypes`, and `sessions` apps installed. Apply the
-database schema with `python manage.py migrate`. The collector uses
-`AUTH_USER_MODEL`, so configure a custom user model before its first migration
-if your project needs one.
+database schema with `python manage.py migrate`. This command also creates the
+`DATA_CENTER` and `CYBERSECURITY` groups; `makemigrations` alone does not run
+this data migration. The collector uses `AUTH_USER_MODEL`, so configure a custom
+user model before the first migration if your project needs one.
 
 Add `log_collector.middleware.SecurityIPBlockMiddleware` after Django's
-`AuthenticationMiddleware` if application-level IP blocking is wanted. The
-dashboard requires a signed-in user who belongs to the `DATA_CENTER` group; a
-superuser must also belong to this group. Opening the Manage page or changing
-collector configuration additionally requires `is_superuser=True`.
+`AuthenticationMiddleware` if application-level IP blocking is wanted.
+The dashboard requires a signed-in user who belongs to either the
+`DATA_CENTER` or `CYBERSECURITY` group. A superuser must also belong to one of
+these groups. Add users to a group through the host project's Django admin;
+migrations do not assign group membership. Opening the Manage page or changing
+collector configuration still requires `is_superuser=True`.
 
 The collector uses its own hosting entity and does not require the host
 project's `Organization` model.

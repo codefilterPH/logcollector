@@ -13,7 +13,8 @@ class OptionalModelTests(TestCase):
         operator = get_user_model().objects.create_superuser(
             username="operator", email="operator@example.test", password="password"
         )
-        operator.groups.add(Group.objects.create(name="DATA_CENTER"))
+        group, _ = Group.objects.get_or_create(name="DATA_CENTER")
+        operator.groups.add(group)
         cls.operator = operator
         cls.hosting = LogCollectorEntity.get_hosting_entity()
 

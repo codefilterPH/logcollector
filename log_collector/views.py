@@ -27,6 +27,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from crowdsec_integration.models import CrowdSecConnection
 from crowdsec_integration.services import CrowdSecError, encrypt_password, request as crowdsec_request, validate_connection
+from log_collector.access import has_dashboard_access
 from log_collector.integrations import contain_user_account, optional_model
 
 from log_collector.forms import (
@@ -68,7 +69,6 @@ from log_collector.services.sync import sync_entity_access_logs as sync_access_l
 from log_collector.tasks import process_synced_security
 
 
-DATA_CENTER_GROUP = "DATA_CENTER"
 MAX_DASHBOARD_PAGE_SIZE = 1000
 MAX_URL_USERNAME_LENGTH = 150
 URL_USERNAME_KEYS = frozenset({"username", "user", "login", "email"})
@@ -161,10 +161,6 @@ def entity_endpoint_descriptors(request, entity, audit_events_enabled=False):
     ]
 
 
-def is_data_center_user(user):
-    return user.is_authenticated and user.groups.filter(name=DATA_CENTER_GROUP).exists()
-
-
 def app_appearance():
     hosting = LogCollectorEntity.get_hosting_entity()
     appearance = LogCollectorSettings.for_entity(hosting)
@@ -187,7 +183,7 @@ def audit_event(request, event_type, entity=None, outcome="success", **details):
 
 
 def require_data_center(request, entity=None, superuser=False):
-    allowed = is_data_center_user(request.user) and (not superuser or request.user.is_superuser)
+    allowed = has_dashboard_access(request.user) and (not superuser or request.user.is_superuser)
     if not allowed:
         audit_event(request, LogCollectorAuditEvent.EventType.DENIED, entity, outcome="denied")
         return False
@@ -511,7 +507,7 @@ def entity_dashboard(request, slug):
         {
             "entity": entity,
             "security_summary": security_summary,
-            "can_manage_blocks": entity.is_hosting and is_data_center_user(request.user),
+            "can_manage_blocks": entity.is_hosting and has_dashboard_access(request.user),
             "can_contain_users": entity.is_hosting and request.user.is_superuser,
             "can_white_flag": entity.is_hosting and request.user.is_superuser,
             "can_manage_crowdsec": entity.is_hosting and request.user.is_superuser,
@@ -859,7 +855,7 @@ class EntityApiBase(APIView):
                 raise PermissionDenied("This API token is not authorized for this entity.")
             return
         if not require_data_center(request, entity, superuser=superuser):
-            raise PermissionDenied("DATA_CENTER access is required.")
+            raise PermissionDenied("DATA_CENTER or CYBERSECURITY group membership is required.")
 
     def local_or_remote(self, entity, resource, params=None):
         if entity.is_hosting:
@@ -1519,7 +1515,7 @@ class SecurityActionApi(EntityApiBase):
         if (not entity.is_hosting or request.headers.get("X-Api-Key")
                 or request.headers.get("Authorization")
                 or not isinstance(request.successful_authenticator, SessionAuthentication)):
-            raise PermissionDenied("A local hosting DATA_CENTER session is required.")
+            raise PermissionDenied("A local hosting DATA_CENTER or CYBERSECURITY session is required.")
 
 
 class SecurityBlockApi(SecurityActionApi):

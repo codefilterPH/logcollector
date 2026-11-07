@@ -14,9 +14,10 @@ configured by the host project; installing the wheel does not provision them.
 
 ### Dashboard access
 
-The dashboard requires a signed-in Django user who belongs to the `DATA_CENTER`
-group. A superuser must also belong to that group. Opening the hosting entity's
-Manage page and changing collector configuration additionally requires
+The dashboard requires a signed-in Django user in either the `DATA_CENTER` or
+`CYBERSECURITY` group. `migrate` creates both groups; administrators must assign
+users to a group manually. Superusers must also belong to either group. Opening
+the hosting entity's Manage page and changing collector configuration additionally requires
 `is_superuser=True`. The collector uses its own hosting entity and does not
 require the host project to have an `Organization` model.
 
