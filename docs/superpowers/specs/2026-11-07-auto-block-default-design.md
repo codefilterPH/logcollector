@@ -67,3 +67,5 @@ The current published package is `0.1.3`; release `0.1.4` after checks pass.
 Push the merged source and matching `v0.1.4` tag to the configured GitHub
 repository, run the workflow for TestPyPI, verify the distribution, then run it
 for PyPI. Keep the configured PyPI environment reviewer gate in force.
+
+The optional Nginx edge helper remains optional; when unset, automatic blocking must still apply through the Django middleware path.

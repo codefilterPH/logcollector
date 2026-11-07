@@ -59,3 +59,9 @@
 - [ ] **Step 12: Merge the task into local `main`, rerun the consumer-smoke suite and package checks, then push `main` and tag `v0.1.4` to `origin`**; verify the remote branch and tag point to the reviewed commit.
 - [ ] **Step 13: Run `.github/workflows/publish.yml` with target `testpypi`** for `v0.1.4`; verify the run succeeds and the uploaded distribution installs with the configuration guide.
 - [ ] **Step 14: Run the same workflow with target `pypi`**; preserve its required reviewer gate, wait for success, and confirm PyPI reports version `0.1.4`.
+
+## Review follow-up
+
+- Add `nginx_block_helper()` with an empty-string fallback and use it in block creation, extension, removal, and retry paths. An absent optional edge helper must still allow Django-level blocks.
+- Regression coverage exercises an absent helper during automatic block creation, absent auto-block settings during reconciliation, and explicit opt-out without block creation.
+- Scope the operations-guide sentence to the broad path-probing rule; other rules may still match one route.

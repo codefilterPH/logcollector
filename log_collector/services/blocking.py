@@ -45,6 +45,11 @@ def auto_block_max_evidence_age_seconds() -> int:
     return getattr(settings, "LOG_COLLECTOR_AUTO_BLOCK_MAX_EVIDENCE_AGE_SECONDS", 900)
 
 
+def nginx_block_helper() -> str:
+    """Return the optional edge-block helper, if the host configured one."""
+    return getattr(settings, "LOG_COLLECTOR_NGINX_BLOCK_HELPER", "") or ""
+
+
 def publish_security_event(entity_id, event_type, payload) -> None:
     """Publish a sanitized snapshot only after the enclosing transaction commits."""
     event = sanitize_security_event(entity_id, event_type, payload)
@@ -113,7 +118,7 @@ def _exempt(ip, origin, incident, actor):
 
 def _helper_action(action, block):
     """Execute only the fixed helper protocol; never accept a caller command."""
-    helper = getattr(settings, "LOG_COLLECTOR_NGINX_BLOCK_HELPER", "")
+    helper = nginx_block_helper()
     if not helper:
         if action == "unblock":
             return "remove_failed", "Nginx helper is not configured; removal is unverified"
@@ -243,7 +248,7 @@ def block_ip(ip_address, *, origin, reason, incident=None, actor=None, expires_a
             block.expires_at = expires_at
             if origin == "manual":
                 block.created_by = actor
-            block.nginx_state = "pending" if settings.LOG_COLLECTOR_NGINX_BLOCK_HELPER or previous_nginx != "not_configured" else "not_configured"
+            block.nginx_state = "pending" if nginx_block_helper() or previous_nginx != "not_configured" else "not_configured"
             block.last_error = ""
             block.save()
             _audit(block, "requested", previous_django=block.django_state, previous_nginx=previous_nginx,
@@ -253,7 +258,7 @@ def block_ip(ip_address, *, origin, reason, incident=None, actor=None, expires_a
             block = BlockedIPAddress.objects.create(
                 ip_address=ip, origin=origin, reason=reason, incident=incident, created_by=actor,
                 expires_at=expires_at, django_state="inactive",
-                nginx_state="pending" if settings.LOG_COLLECTOR_NGINX_BLOCK_HELPER else "not_configured",
+                nginx_state="pending" if nginx_block_helper() else "not_configured",
             )
             _audit(block, "requested", actor=actor, reason=reason, details=evidence, now=now)
             block.django_state = "active"
@@ -274,7 +279,7 @@ def _deactivate(block_id, *, actor, reason, now, action, only_expired=False):
             return _result(block, status="unchanged")
         previous_django, previous_nginx = block.django_state, block.nginx_state
         block.desired_active, block.django_state = False, "inactive"
-        block.nginx_state = "pending" if settings.LOG_COLLECTOR_NGINX_BLOCK_HELPER or previous_nginx != "not_configured" else "not_configured"
+        block.nginx_state = "pending" if nginx_block_helper() or previous_nginx != "not_configured" else "not_configured"
         block.last_error = ""
         block.save(update_fields=("desired_active", "django_state", "nginx_state", "last_error", "updated_at"))
         _audit(block, action, previous_django=previous_django, previous_nginx=previous_nginx,
@@ -309,7 +314,7 @@ def expire_blocks(*, now=None, limit=None) -> int:
 def retry_pending_nginx_actions(*, limit=100) -> int:
     if not isinstance(limit, int) or limit < 1:
         raise ValueError("Retry limit must be positive")
-    if not settings.LOG_COLLECTOR_NGINX_BLOCK_HELPER:
+    if not nginx_block_helper():
         return 0
     pending = (Q(desired_active=True, nginx_state__in=("pending", "failed", "not_configured")) |
                Q(desired_active=False, nginx_state__in=("pending", "remove_failed")))
