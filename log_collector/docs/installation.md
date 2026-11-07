@@ -7,6 +7,19 @@ environment in the host Django project:
 python -m pip install 'codefilterph-logcollector[redis,asgi]'
 ```
 
+The distribution includes both `log_collector` and `crowdsec_integration`. If
+`manage.py` raises `ModuleNotFoundError: No module named 'crowdsec_integration'`,
+confirm the package is installed in the same Python environment used to run
+`manage.py`:
+
+```shell
+python -m pip show codefilterph-logcollector
+python -c "import crowdsec_integration"
+```
+
+This release requires Python 3.12–3.13 and Django 6.0.x; it is not compatible
+with Python 3.8 / Django 3.2 environments.
+
 Add the apps and mount the HTTP URLs:
 
 ```python
