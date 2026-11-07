@@ -330,6 +330,9 @@
     (() => {
       const ajaxActions = new Set(["test_connection", "save_entity", "create_token", "rotate_token", "revoke_token", "delete_token"]);
       const tokenActions = new Set(["create_token", "rotate_token", "revoke_token", "delete_token"]);
+      const managementFetch = window.fetchWithAuth
+        ? window.fetchWithAuth.bind(window)
+        : (url, options = {}) => window.fetch(url, {...options, credentials: "same-origin"});
       const status = document.getElementById("management-status");
 
       function setStatus(message, isError = false) {
@@ -359,7 +362,7 @@
       }
 
       async function refreshTokenPanel() {
-        const response = await window.fetchWithAuth(window.location.href, {
+        const response = await managementFetch(window.location.href, {
           headers: {"X-Requested-With": "XMLHttpRequest"},
         });
         if (!response.ok) throw new Error("Unable to refresh token panel.");
@@ -398,7 +401,7 @@
         try {
           const data = new FormData(form);
           data.set(submitter.name, submitter.value || "1");
-          const response = await window.fetchWithAuth(form.action || window.location.href, {
+          const response = await managementFetch(form.action || window.location.href, {
             method: "POST",
             body: data,
             headers: {"X-Requested-With": "XMLHttpRequest", "Accept": "application/json"},
