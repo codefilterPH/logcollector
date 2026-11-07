@@ -1122,7 +1122,10 @@ class GeolocationApi(EntityApiBase):
         query = request.GET.get("q", "").strip()
         if query:
             locations = locations.filter(
-                **{f"user__{get_user_model().USERNAME_FIELD}__icontains": query}
+                Q(**{f"user__{get_user_model().USERNAME_FIELD}__icontains": query})
+                | Q(ip_address__icontains=query)
+                | Q(country__icontains=query)
+                | Q(city__icontains=query)
             )
         audit_event(request, LogCollectorAuditEvent.EventType.API_REQUEST, entity, resource="geolocation")
         if request.GET.get("export") == "csv":
@@ -1196,6 +1199,8 @@ class UserSessionsApi(EntityApiBase):
             sessions = sessions.filter(
                 Q(**{f"user__{get_user_model().USERNAME_FIELD}__icontains": query})
                 | Q(ip__icontains=query)
+                | Q(session_key__icontains=query)
+                | Q(user_agent__icontains=query)
             )
         audit_event(request, LogCollectorAuditEvent.EventType.API_REQUEST, entity, resource="user-sessions")
         if request.GET.get("export") == "csv":
@@ -1307,6 +1312,7 @@ class SecurityIncidentsApi(EntityApiBase):
                 Q(source_ip__icontains=query) | Q(rule_code__icontains=query)
                 | Q(target_family__icontains=query) | Q(category__icontains=query)
                 | Q(severity__icontains=query)
+                | Q(latest_evidence__path__icontains=query)
             )
         sort = request.GET.get("sort", "-last_seen_at")
         sort_field = sort.removeprefix("-")

@@ -28,6 +28,8 @@ sub-tabs; the selected view is stored in the URL and browser history. Creating
 a CrowdSec decision requires a signed-in superuser dashboard session and CSRF
 protection. The three activity charts share a row on wide screens and stack on
 smaller screens.
+The Search current table field also matches alert target paths, location IPs
+and places, and session keys and user agents in their respective views.
 
 Mount `log_collector.urls` before root-level slug routes such as
 `path("<slug:slug>/", ...)`; otherwise a catch-all route can capture

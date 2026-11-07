@@ -9,7 +9,12 @@ from django.utils import timezone
 
 from crowdsec_integration.models import CrowdSecConnection
 from crowdsec_integration.services import CrowdSecError, encrypt_password
-from log_collector.models import LogCollectorAuditEvent, LogCollectorEntity, NginxAccessLog
+from log_collector.models import (
+    LogCollectorAuditEvent,
+    LogCollectorEntity,
+    NginxAccessLog,
+    SecurityIncident,
+)
 
 
 class DashboardViewsTests(TestCase):
@@ -53,6 +58,28 @@ class DashboardViewsTests(TestCase):
         self.assertIn("/metrics/", access_paths)
         self.assertNotIn("/log-collector/api/entities/hosting-app/metrics/", access_paths)
         self.assertEqual(app_paths, {"/log-collector/api/entities/hosting-app/metrics/"})
+
+    def test_access_alert_search_matches_displayed_latest_target(self):
+        SecurityIncident.objects.create(
+            entity=self.hosting,
+            category=SecurityIncident.Category.MALICIOUS,
+            severity=SecurityIncident.Severity.HIGH,
+            confidence_score=0.9,
+            source_ip="192.0.2.10",
+            rule_code="test-rule",
+            target_family="test-path",
+            fingerprint="search-latest-target",
+            first_seen_at=timezone.now(),
+            last_seen_at=timezone.now(),
+            request_count=1,
+            latest_evidence={"path": "/public/search-canary-alpha/"},
+        )
+        url = f"/log-collector/api/entities/{self.hosting.slug}/security-incidents/"
+
+        response = self.client.get(url, {"q": "search-canary-alpha"})
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["count"], 1)
 
     def test_collector_logs_search_uses_existing_audit_feed(self):
         LogCollectorAuditEvent.objects.create(

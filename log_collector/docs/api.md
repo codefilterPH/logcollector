@@ -8,6 +8,9 @@ The dashboard's App Logs view requests `access-logs/?source=app`, which returns
 only paths starting with `/log-collector/`; the default Access Logs response
 excludes those paths. Collector Logs uses the existing `audit-events/` feed.
 Table resources support pagination; supported resources accept `export=csv`.
+The `q` parameter on `security-incidents/` also searches the latest evidence
+path. On `geolocation/`, it searches user, IP, country, and city; on
+`user-sessions/`, it searches user, IP, session key, and user agent.
 
 Generate an entity-scoped collector token as a superuser on the entity Manage
 page. The raw token is shown once. Server-to-server callers send it in the
