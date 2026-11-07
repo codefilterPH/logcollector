@@ -24,7 +24,7 @@ jobs:
         run: |
           python -m django check --settings=logcollector_package_settings
           python -m django makemigrations --check --dry-run --settings=logcollector_package_settings
-          python -m django test test_appearance test_optional_models --settings=logcollector_package_settings --noinput
+          python -m django test test_appearance test_optional_models test_auto_block_defaults --settings=logcollector_package_settings --noinput
           python -m unittest discover -s packaging/consumer_smoke -p test_portable_imports.py
       - run: python -m build
       - run: python -m twine check dist/*

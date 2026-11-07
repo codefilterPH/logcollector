@@ -9,6 +9,32 @@ reader accepts Nginx common and combined access-log entries. Configure the
 hosting entity's paths, cooldown, maximum lines per sync, and retention on its
 Manage page. Access-log rotation must leave new files readable by workers.
 
+## Automatic IP blocking
+
+Automatic IP blocking is enabled by default. A host does not need to add an
+enablement setting to `settings.py`. To disable it, add this to the host's
+Django settings:
+
+```python
+LOG_COLLECTOR_AUTO_BLOCK_ENABLED = False
+```
+
+Optional settings, also placed in the host's Django settings, control how long
+evidence remains eligible and how long an automatic block lasts. Values are
+seconds; defaults are 900 seconds (15 minutes) and 86,400 seconds (24 hours):
+
+```python
+LOG_COLLECTOR_AUTO_BLOCK_MAX_EVIDENCE_AGE_SECONDS = 900
+LOG_COLLECTOR_AUTO_BLOCK_DURATION_SECONDS = 86400
+```
+
+Automatic blocks apply only to incidents accepted by the existing security
+rules. Trusted and white-flagged IPs remain exempt, and evidence older than the
+configured maximum age is ignored. Repeated 404s on one route do not trigger
+the broad path-probing rule: it requires at least 20 client errors in five
+minutes across at least 10 distinct normalized paths. See [Operations](operations-guide.md)
+for deployment checks.
+
 ## ASGI and WebSockets
 
 Set `ASGI_APPLICATION` and a production `CHANNEL_LAYERS` backend, such as

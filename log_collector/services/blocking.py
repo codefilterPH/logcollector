@@ -35,6 +35,16 @@ class BlockResult:
     status: str = "applied"
 
 
+def is_auto_block_enabled() -> bool:
+    """Return whether automatic blocking is enabled, defaulting on."""
+    return bool(getattr(settings, "LOG_COLLECTOR_AUTO_BLOCK_ENABLED", True))
+
+
+def auto_block_max_evidence_age_seconds() -> int:
+    """Return the maximum incident evidence age, defaulting to 15 minutes."""
+    return getattr(settings, "LOG_COLLECTOR_AUTO_BLOCK_MAX_EVIDENCE_AGE_SECONDS", 900)
+
+
 def publish_security_event(entity_id, event_type, payload) -> None:
     """Publish a sanitized snapshot only after the enclosing transaction commits."""
     event = sanitize_security_event(entity_id, event_type, payload)
@@ -206,10 +216,10 @@ def block_ip(ip_address, *, origin, reason, incident=None, actor=None, expires_a
     if origin == "automatic":
         if incident is None:
             raise ValueError("Automatic blocking requires an incident")
-        if not getattr(settings, "LOG_COLLECTOR_AUTO_BLOCK_ENABLED", False):
+        if not is_auto_block_enabled():
             return _result(status="disabled")
         age = (now - incident.last_seen_at).total_seconds()
-        if age > getattr(settings, "LOG_COLLECTOR_AUTO_BLOCK_MAX_EVIDENCE_AGE_SECONDS", 900) or age < 0:
+        if age > auto_block_max_evidence_age_seconds() or age < 0:
             return _result(status="stale")
         expires_at = expires_at or now + timedelta(
             seconds=getattr(settings, "LOG_COLLECTOR_AUTO_BLOCK_DURATION_SECONDS", 86400))
