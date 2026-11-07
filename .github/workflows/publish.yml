@@ -45,7 +45,7 @@ jobs:
     runs-on: ubuntu-latest
     environment:
       name: ${{ inputs.target }}
-      url: ${{ inputs.target == 'pypi' && 'https://pypi.org/project/logcollector/' || 'https://test.pypi.org/project/logcollector/' }}
+      url: ${{ inputs.target == 'pypi' && 'https://pypi.org/project/codefilterph-logcollector/' || 'https://test.pypi.org/project/codefilterph-logcollector/' }}
     permissions:
       id-token: write
     steps:

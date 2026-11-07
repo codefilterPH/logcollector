@@ -7,7 +7,7 @@ security incidents, API access, WebSocket updates, Celery processing, and
 read-only connections to other LOG Collector installations. CrowdSec connection
 management is included in the distribution.
 
-Install with `pip install logcollector`. Add `log_collector` and
+Install with `pip install codefilterph-logcollector`. Add `log_collector` and
 `crowdsec_integration` to `INSTALLED_APPS`, mount `log_collector.urls`, and run
 migrations. Nginx file access, ASGI, a channel layer, and Celery services are
 configured by the host project; installing the wheel does not provision them.

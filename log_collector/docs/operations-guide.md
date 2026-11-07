@@ -30,7 +30,7 @@ do not put secrets in package configuration files.
 Publish from the standalone `codefilterPH/logcollector` repository. Review its
 source and archives for host-specific names, paths, credentials, and unrelated
 apps. Confirm the public license and increment the version in `pyproject.toml`.
-Check that the normalized `logcollector` name is still available on both
+Check that the normalized `codefilterph-logcollector` name is still available on both
 package indexes immediately before the first release.
 
 In TestPyPI, register a Trusted Publisher for GitHub owner `codefilterPH`,
@@ -39,7 +39,7 @@ Protect that GitHub environment. Tag the reviewed version as `vX.Y.Z`, then
 run **Publish package** against that tag with target `testpypi`. Check the
 uploaded files and README. In a fresh environment, install dependencies from
 PyPI, then install the exact candidate from TestPyPI with
-`python -m pip install --no-deps --index-url https://test.pypi.org/simple/ logcollector==X.Y.Z`.
+`python -m pip install --no-deps --index-url https://test.pypi.org/simple/ codefilterph-logcollector==X.Y.Z`.
 Run the installation and configuration checks on that candidate.
 
 For production, register a separate PyPI Trusted Publisher with the same
@@ -47,6 +47,6 @@ owner, repository, and workflow but environment `pypi`. Require review for
 that GitHub environment. Run the same workflow against the reviewed tag with
 target `pypi`. The workflow uses short-lived OIDC credentials; no PyPI API
 token belongs in the repository. Verify `python -m pip install
-logcollector==X.Y.Z` in a fresh environment, inspect the installed guides,
+codefilterph-logcollector==X.Y.Z` in a fresh environment, inspect the installed guides,
 and record release notes. A package version cannot be overwritten on PyPI;
 fixes require a new version and tag.

@@ -3,8 +3,8 @@ requires = ["setuptools>=77.0.3", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "logcollector"
-version = "0.1.0"
+name = "codefilterph-logcollector"
+version = "0.1.1"
 description = "Django Nginx log collection, security monitoring, and remote collector dashboards"
 readme = "README.md"
 requires-python = ">=3.12,<3.14"
