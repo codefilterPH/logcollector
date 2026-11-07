@@ -11,9 +11,10 @@ Install with `pip install codefilterph-logcollector`. Add `log_collector` and
 `crowdsec_integration` to `INSTALLED_APPS`, mount `log_collector.urls`, and run
 migrations. Nginx file access, ASGI, a channel layer, and Celery services are
 configured and started by the host project; installing the wheel installs
-Python dependencies but does not provision or start these services. See the
-[Deployment guide](log_collector/docs/deployment.md) for a copyable Redis,
-Celery, Daphne, systemd, and Nginx example.
+Python dependencies but does not provision or start these services. When you
+are ready to move from installation to production, follow the [Deployment
+guide](https://github.com/codefilterPH/logcollector/blob/main/log_collector/docs/deployment.md)
+for a copyable Redis, Celery, Daphne, systemd, and Nginx example.
 
 ### Dashboard access
 
