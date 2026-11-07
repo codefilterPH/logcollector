@@ -110,6 +110,23 @@ class DashboardViewsTests(TestCase):
         self.assertContains(response, 'data-tab="collector-logs"')
         self.assertContains(response, 'data-crowdsec-tab="detections"')
         self.assertContains(response, 'data-crowdsec-tab="decisions"')
+        self.assertContains(response, "HOSTING APP")
+        self.assertContains(response, self.hosting.name)
+        self.assertContains(response, '>Refresh</button>')
+        self.assertContains(response, 'id="refresh-status" role="status" aria-live="polite"')
+        content = response.content.decode()
+        self.assertLess(content.index('aria-label="Dashboard activity charts"'), content.index('id="dashboard-layout"'))
+        header_styles = content.split(".header {", 1)[1].split("}", 1)[0]
+        self.assertIn("justify-content:space-between", header_styles)
+        self.assertIn("flex-wrap:wrap", header_styles)
+        actions = content.split('<div class="header-actions">', 1)[1].split("</div>", 1)[0]
+        self.assertIn('id="refresh-data"', actions)
+        self.assertIn('id="refresh-status"', actions)
+        action_styles = content.split(".header-actions {", 1)[1].split("}", 1)[0]
+        self.assertIn("max-width:100%", action_styles)
+        self.assertIn("flex-wrap:wrap", action_styles)
+        narrow_styles = content.split("@media (max-width:760px)", 1)[1].split("</style>", 1)[0]
+        self.assertIn(".header { align-items:flex-start; }", narrow_styles)
         self.assertContains(response, "grid-template-columns:repeat(3,minmax(0,1fr))")
         self.assertContains(response, "search.addEventListener('input'")
         self.assertContains(response, "url.searchParams.set('crowdsec'")

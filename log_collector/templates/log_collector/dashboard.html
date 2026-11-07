@@ -128,14 +128,17 @@
     }
     .header {
       display:flex;
-      align-items:flex-end;
+      align-items:center;
       justify-content:space-between;
+      flex-wrap:wrap;
       gap:16px;
       margin:10px 0 18px;
       padding-bottom:18px;
       border-bottom:1px solid var(--line);
     }
-    .header-actions { display:flex; align-items:center; flex-wrap:wrap; justify-content:flex-end; gap:10px; }
+    .header-brand { min-width:0; flex:1 1 auto; }
+    .header-actions { display:flex; min-width:0; max-width:100%; align-items:center; flex:0 1 auto; flex-wrap:wrap; justify-content:flex-end; gap:10px; }
+    #refresh-status { overflow-wrap:anywhere; }
     h1 { margin:0; font-size:28px; font-weight:700; }
     .eyebrow {
       margin:0 0 4px;
@@ -502,7 +505,7 @@
     }
     @media (max-width:760px) {
       main { padding:20px 14px 40px; }
-      .header { align-items:flex-start; flex-direction:column; }
+      .header { align-items:flex-start; }
       .header-actions { justify-content:flex-start; }
       h1 { font-size:24px; }
       .metrics { grid-template-columns:repeat(2,minmax(0,1fr)); }
@@ -523,11 +526,14 @@
  <main id="collector-content" tabindex="-1" data-slug="{{ entity.slug }}" data-can-manage-crowdsec="{{ can_manage_crowdsec|yesno:'true,false' }}" data-can-view-collector-logs="{{ user.is_superuser|yesno:'true,false' }}"{% if user.is_superuser %} data-security-report-url="{% url 'log_collector:security_report' entity.slug %}"{% endif %}>
     <a class="crumb" href="{% url 'log_collector:entity_selection' %}">All entities</a>
     <header class="header">
-      <div>
-        <p class="eyebrow">{{ entity.get_entity_type_display }}</p>
+      <div class="header-brand">
+        <p class="eyebrow">HOSTING APP</p>
         <h1>{{ entity.name }}</h1>
-        <p><button class="refresh-button" id="refresh-data" type="button">Refresh data</button> <span id="refresh-status" role="status" aria-live="polite"></span></p>
       </div>
+      <div class="header-actions">
+        <button class="refresh-button" id="refresh-data" type="button">Refresh</button>
+        <span id="refresh-status" role="status" aria-live="polite"></span>
+ </div>
  </header>
 
  {% if security_summary.critical_alert_count %}
@@ -593,6 +599,21 @@
 
     <section class="metrics" id="metrics" aria-live="polite"></section>
 
+    <section class="security-activity-row" aria-label="Dashboard activity charts">
+      <section class="activity-panel" aria-labelledby="activity-chart-heading">
+        <h2 id="activity-chart-heading">Requests in the last 7 days</h2>
+        <div id="daily-requests-chart"></div>
+      </section>
+      <section class="activity-panel" aria-labelledby="attack-activity-heading">
+        <h2 id="attack-activity-heading">Attack evidence per 10 minutes</h2>
+        <div id="attack-activity-chart"></div>
+      </section>
+      <section class="activity-panel activity-panel--blocks" aria-labelledby="automatic-ip-blocks-heading">
+        <h2 id="automatic-ip-blocks-heading">New automatic IP blocks per 10 minutes</h2>
+        <div id="automatic-ip-blocks-chart"></div>
+      </section>
+    </section>
+
     <section class="dashboard-layout" id="dashboard-layout" aria-label="Collector data and recent activity">
 <section class="workspace" aria-label="Collector data table">
       <h2 class="sr-only" id="view-heading">All Alerts</h2>
@@ -617,20 +638,7 @@
 <nav class="pagination" id="pagination" aria-label="Table pagination"></nav>
 </section>
 </section>
-<section class="security-activity-row" aria-label="Dashboard activity charts">
-  <section class="activity-panel" aria-labelledby="activity-chart-heading">
-    <h2 id="activity-chart-heading">Requests in the last 7 days</h2>
-    <div id="daily-requests-chart"></div>
-  </section>
-  <section class="activity-panel" aria-labelledby="attack-activity-heading">
-    <h2 id="attack-activity-heading">Attack evidence per 10 minutes</h2>
-    <div id="attack-activity-chart"></div>
-  </section>
-  <section class="activity-panel activity-panel--blocks" aria-labelledby="automatic-ip-blocks-heading">
-    <h2 id="automatic-ip-blocks-heading">New automatic IP blocks per 10 minutes</h2>
-    <div id="automatic-ip-blocks-chart"></div>
-  </section>
-</section>
+
 </main>
 
   <div class="detail-backdrop" id="detail-backdrop" data-detail-close hidden></div>
