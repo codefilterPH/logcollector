@@ -46,6 +46,7 @@ exclude = ["log_collector.tests", "log_collector.tests.*"]
 log_collector = [
     "docs/installation.md",
     "docs/configuration.md",
+    "docs/deployment.md",
     "docs/api.md",
     "docs/operations-guide.md",
     "templates/log_collector/*.html",

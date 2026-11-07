@@ -7,6 +7,12 @@ environment in the host Django project:
 python -m pip install 'codefilterph-logcollector[redis,asgi]'
 ```
 
+The `redis` extra installs the Channels Redis backend and `asgi` installs
+Daphne. Celery is installed as a required Python dependency. These packages do
+not install a Redis server, configure the host project, or start Celery, Beat,
+or Daphne services. See the [Deployment guide](deployment.md) for a complete
+systemd and Nginx example.
+
 The distribution includes both `log_collector` and `crowdsec_integration`. If
 `manage.py` raises `ModuleNotFoundError: No module named 'crowdsec_integration'`,
 confirm the package is installed in the same Python environment used to run

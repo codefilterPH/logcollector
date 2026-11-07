@@ -23,6 +23,9 @@ beat and workers consuming `default`; add a worker consuming `sms` when SMS
 alerts are enabled. A disconnected WebSocket does not stop HTTP refresh or
 scheduled collection. Retain monitoring for worker failures, log rotation,
 unreadable paths, and stale last-sync timestamps.
+See the [Deployment guide](deployment.md) for copyable Celery, systemd,
+Daphne, and Nginx configuration, plus checks for common API, WebSocket, and
+collection failures.
 
 Application-level IP blocking is supplied by the optional collector middleware.
 Edge blocking needs a separately installed and reviewed fixed-path helper in
