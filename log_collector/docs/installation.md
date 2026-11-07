@@ -21,6 +21,20 @@ INSTALLED_APPS += [
 urlpatterns += [path("log-collector/", include("log_collector.urls"))]
 ```
 
+Before running any Django management command, including `makemigrations` or
+`migrate`, define the required security CIDR settings in the host project's
+`settings.py`:
+
+```python
+LOG_COLLECTOR_TRUSTED_PROXY_CIDRS = []
+LOG_COLLECTOR_TRUSTED_IP_CIDRS = ["127.0.0.0/8", "::1/128"]
+```
+
+Set `LOG_COLLECTOR_TRUSTED_PROXY_CIDRS` to the CIDRs of proxies that connect
+directly to Django. Leave it empty when Django receives requests directly. Set
+`LOG_COLLECTOR_TRUSTED_IP_CIDRS` to the IP ranges your security policy trusts;
+the example trusts loopback only.
+
 Keep Django's `auth`, `contenttypes`, and `sessions` apps installed. Apply the
 database schema with `python manage.py migrate`. The collector uses
 `AUTH_USER_MODEL`, so configure a custom user model before its first migration
