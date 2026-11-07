@@ -240,7 +240,7 @@
     }
     .dashboard-layout {
       display:grid;
-      grid-template-columns:minmax(0,4fr) minmax(220px,1fr);
+      grid-template-columns:minmax(0,1fr);
       align-items:start;
       gap:16px;
     }
@@ -268,7 +268,7 @@
     .chart-empty { margin:0; color:var(--muted); font-size:13px; }
     .security-activity-row {
       display:grid;
-      grid-template-columns:repeat(2,minmax(0,1fr));
+      grid-template-columns:repeat(3,minmax(0,1fr));
       gap:16px;
       margin-top:16px;
     }
@@ -498,6 +498,7 @@
     [hidden] { display:none !important; }
     @media (max-width:1100px) {
       .dashboard-layout { grid-template-columns:1fr; }
+      .security-activity-row { grid-template-columns:1fr; }
     }
     @media (max-width:760px) {
       main { padding:20px 14px 40px; }
@@ -519,7 +520,7 @@
 </head>
 <body data-theme="{{ app_theme }}">
  <a class="skip-link" href="#collector-content">Skip to collector data</a>
- <main id="collector-content" tabindex="-1" data-slug="{{ entity.slug }}" data-can-manage-crowdsec="{{ can_manage_crowdsec|yesno:'true,false' }}"{% if user.is_superuser %} data-security-report-url="{% url 'log_collector:security_report' entity.slug %}"{% endif %}>
+ <main id="collector-content" tabindex="-1" data-slug="{{ entity.slug }}" data-can-manage-crowdsec="{{ can_manage_crowdsec|yesno:'true,false' }}" data-can-view-collector-logs="{{ user.is_superuser|yesno:'true,false' }}"{% if user.is_superuser %} data-security-report-url="{% url 'log_collector:security_report' entity.slug %}"{% endif %}>
     <a class="crumb" href="{% url 'log_collector:entity_selection' %}">All entities</a>
     <header class="header">
       <div>
@@ -540,10 +541,16 @@
 
  <nav class="tabs" aria-label="Collector data views">
       <button class="active" type="button" data-tab="access-logs" aria-pressed="true">Access Logs</button>
+      <button type="button" data-tab="app-logs" aria-pressed="false">App Logs</button>
+      {% if user.is_superuser %}<button type="button" data-tab="collector-logs" aria-pressed="false">Collector Logs</button>{% endif %}
       {% if entity.geolocation_enabled %}<button type="button" data-tab="geolocation" aria-pressed="false">Geolocation</button>{% endif %}
       {% if entity.user_sessions_enabled %}<button type="button" data-tab="user-sessions" aria-pressed="false">User Sessions</button>{% endif %}
       {% if entity.is_hosting %}<button type="button" data-tab="crowdsec" aria-pressed="false">CrowdSec</button>{% endif %}
     </nav>
+
+    <div class="toolbar" aria-label="Search dashboard views">
+      <input class="search" id="search" type="search" placeholder="Search current table" aria-label="Search current table">
+    </div>
 
     {% if entity.is_hosting %}
     <section id="crowdsec-panel" class="activity-panel" aria-labelledby="crowdsec-heading" hidden>
@@ -561,10 +568,18 @@
           <label>Reason <input name="reason" maxlength="120" required></label>
           <button class="view-button" type="submit">Create decision</button><span id="crowdsec-action-result" role="status"></span>
         </form>{% endif %}
-        <h3>Detections</h3><div id="crowdsec-alerts" aria-live="polite"></div>
-        <nav id="crowdsec-alerts-pagination" class="crowdsec-pagination" aria-label="Detections pagination"></nav>
-        <h3>Active decisions</h3><div id="crowdsec-decisions" aria-live="polite"></div>
-        <nav id="crowdsec-decisions-pagination" class="crowdsec-pagination" aria-label="Decisions pagination"></nav>
+        <nav class="tabs" aria-label="CrowdSec views">
+          <button type="button" data-crowdsec-tab="detections" aria-pressed="true">Detections</button>
+          <button type="button" data-crowdsec-tab="decisions" aria-pressed="false">Blocked IP List</button>
+        </nav>
+        <section data-crowdsec-panel="detections" aria-label="CrowdSec detections">
+          <div id="crowdsec-alerts" aria-live="polite"></div>
+          <nav id="crowdsec-alerts-pagination" class="crowdsec-pagination" aria-label="Detections pagination"></nav>
+        </section>
+        <section data-crowdsec-panel="decisions" aria-label="Blocked IP List" hidden>
+          <div id="crowdsec-decisions" aria-live="polite"></div>
+          <nav id="crowdsec-decisions-pagination" class="crowdsec-pagination" aria-label="Blocked IP pagination"></nav>
+        </section>
       </div>
     </section>
     {% endif %}
@@ -582,7 +597,6 @@
 <section class="workspace" aria-label="Collector data table">
       <h2 class="sr-only" id="view-heading">All Alerts</h2>
       <div class="toolbar">
-        <input class="search" id="search" type="search" placeholder="Search current table" aria-label="Search current table">
         <div class="table-tools">
           <button class="export-button" type="button" data-export-action="csv">Export CSV</button>
           <div class="table-meta">
@@ -602,12 +616,12 @@
       <div class="table-wrap" id="table" tabindex="0" aria-label="Scrollable collector table"></div>
 <nav class="pagination" id="pagination" aria-label="Table pagination"></nav>
 </section>
-<aside class="activity-panel" aria-labelledby="activity-chart-heading">
-<h2 id="activity-chart-heading">Requests in the last 7 days</h2>
-<div id="daily-requests-chart"></div>
-</aside>
 </section>
-<section class="security-activity-row" aria-label="Security activity over the last 24 hours">
+<section class="security-activity-row" aria-label="Dashboard activity charts">
+  <section class="activity-panel" aria-labelledby="activity-chart-heading">
+    <h2 id="activity-chart-heading">Requests in the last 7 days</h2>
+    <div id="daily-requests-chart"></div>
+  </section>
   <section class="activity-panel" aria-labelledby="attack-activity-heading">
     <h2 id="attack-activity-heading">Attack evidence per 10 minutes</h2>
     <div id="attack-activity-chart"></div>
@@ -712,8 +726,8 @@ const automaticIpBlocksChart = document.querySelector('#automatic-ip-blocks-char
   let returnRowId = null;
   const incidentView = () => tab === 'access-logs' && securityFilter !== 'all';
   const viewKey = () => tab === 'access-logs' ? `access-logs:${securityFilter}` : tab;
-  const endpoint = () => incidentView() ? 'security-incidents' : tab;
-  const viewLabel = () => tab !== 'access-logs' ? formatLabel(tab) : ({alerts:'All Alerts', unauthorized:'Unauthorized', malicious:'Malicious', all:'All Access Logs'}[securityFilter]);
+  const endpoint = () => tab === 'app-logs' ? 'access-logs' : tab === 'collector-logs' ? 'audit-events' : incidentView() ? 'security-incidents' : tab;
+  const viewLabel = () => tab === 'access-logs' ? ({alerts:'All Alerts', unauthorized:'Unauthorized', malicious:'Malicious', all:'All Access Logs'}[securityFilter]) : ({'app-logs':'App Logs', 'collector-logs':'Collector Logs'}[tab] || formatLabel(tab));
   let latestRows = [];
   let currentPage = 1;
   const crowdsecPageSize = 10;
@@ -730,6 +744,8 @@ const automaticIpBlocksChart = document.querySelector('#automatic-ip-blocks-char
 
     const columns = name => {
       if (name === 'access-logs') return ['timestamp', 'ip_address', 'url_username', 'method', 'path', 'request_context', 'status_code', 'security_alert'];
+      if (name === 'app-logs') return ['timestamp', 'ip_address', 'url_username', 'method', 'path', 'request_context', 'status_code', 'security_alert'];
+      if (name === 'collector-logs') return ['created_at', 'event_type', 'outcome', 'path', 'user', 'api_key_name'];
       if (name === 'geolocation') return ['captured_at', 'user', 'ip_address', 'latitude', 'longitude', 'country', 'city'];
 if (name === 'user-sessions') return ['session_key', 'last_seen_at', 'user', 'ip_address', 'user_agent', 'ip_threat', 'security_alert'];
     return [];
@@ -820,9 +836,9 @@ if (!row.ip_threat) return '—';
 const rowIndex = latestRows.indexOf(row);
 return `<span class="security-alert-cell">${escapeHtml(value)}</span><div class="actions-cell">${blockControl(row, rowIndex)}${containControl(row, rowIndex)}</div>`;
 }
-      if (tab === 'access-logs' && field === 'request_context') return renderRequestContext(row);
-    if (tab === 'access-logs' && field === 'method') return renderMethod(value);
-      if (tab === 'access-logs' && field === 'status_code') return renderStatus(value, row);
+      if (['access-logs', 'app-logs'].includes(tab) && field === 'request_context') return renderRequestContext(row);
+    if (['access-logs', 'app-logs'].includes(tab) && field === 'method') return renderMethod(value);
+      if (['access-logs', 'app-logs'].includes(tab) && field === 'status_code') return renderStatus(value, row);
       return escapeHtml(value);
     }
 
@@ -1171,6 +1187,8 @@ function renderSecuritySummary(summary) {
       pager.innerHTML = '';
       return;
     }
+    const query = search.value.trim().toLowerCase();
+    if (query) rows = rows.filter(row => JSON.stringify(row).toLowerCase().includes(query));
     const pageCount = Math.max(1, Math.ceil(rows.length / crowdsecPageSize));
     crowdsecPages[kind] = Math.min(Math.max(0, crowdsecPages[kind]), pageCount - 1);
     const start = crowdsecPages[kind] * crowdsecPageSize;
@@ -1200,12 +1218,30 @@ function renderSecuritySummary(summary) {
     function tableUrl(page, csv = false) {
       const params = new URLSearchParams({q:search.value, page:String(page), page_size:pageSize.value});
       if (incidentView() && securityFilter !== 'alerts') params.set('category', securityFilter);
+      if (tab === 'app-logs') params.set('source', 'app');
       if (csv) params.set('export', 'csv');
       return `/log-collector/api/entities/${slug}/${endpoint()}/?${params.toString()}`;
     }
 
     function exportCurrentTable() {
       window.location.href = tableUrl(currentPage, true);
+    }
+
+    function changeCrowdSecTab(nextTab = 'detections', pushHistory = true) {
+      const selected = nextTab === 'decisions' ? 'decisions' : 'detections';
+      document.querySelectorAll('[data-crowdsec-tab]').forEach(button => {
+        const active = button.dataset.crowdsecTab === selected;
+        button.setAttribute('aria-pressed', String(active));
+      });
+      document.querySelectorAll('[data-crowdsec-panel]').forEach(panel => {
+        panel.hidden = panel.dataset.crowdsecPanel !== selected;
+      });
+      if (pushHistory && tab === 'crowdsec') {
+        const url = new URL(window.location.href);
+        url.searchParams.set('view', 'crowdsec');
+        url.searchParams.set('crowdsec', selected);
+        window.history.pushState({}, '', url);
+      }
     }
 
     function changeView(nextTab, nextFilter = securityFilter, pushHistory = true) {
@@ -1232,28 +1268,48 @@ function renderSecuritySummary(summary) {
       url.searchParams.set('view', tab);
       if (tab === 'access-logs') url.searchParams.set('security', securityFilter);
       else url.searchParams.delete('security');
+      if (tab === 'crowdsec') url.searchParams.set('crowdsec', document.querySelector('[data-crowdsec-tab][aria-pressed="true"]')?.dataset.crowdsecTab || 'detections');
+      else url.searchParams.delete('crowdsec');
       if (pushHistory) window.history.pushState({}, '', url);
     }
 
     document.querySelectorAll('[data-tab]').forEach(button => button.addEventListener('click', () => {
       changeView(button.dataset.tab);
     }));
+    document.querySelectorAll('[data-crowdsec-tab]').forEach(button => button.addEventListener('click', () => {
+      changeCrowdSecTab(button.dataset.crowdsecTab);
+    }));
     window.addEventListener('popstate', () => {
       const state = new URLSearchParams(window.location.search);
       const view = state.get('view');
       const filter = state.get('security');
-      changeView(['access-logs', 'geolocation', 'user-sessions', 'crowdsec'].includes(view) ? view : 'access-logs', ['alerts', 'unauthorized', 'malicious', 'all'].includes(filter) ? filter : 'alerts', false);
+      const validViews = ['access-logs', 'app-logs', 'geolocation', 'user-sessions', 'crowdsec'];
+      if (root.dataset.canViewCollectorLogs === 'true') validViews.push('collector-logs');
+      changeView(validViews.includes(view) ? view : 'access-logs', ['alerts', 'unauthorized', 'malicious', 'all'].includes(filter) ? filter : 'alerts', false);
+      changeCrowdSecTab(state.get('crowdsec'), false);
     });
     const crowdsecBlockForm = document.querySelector('#crowdsec-block-form');
     if (crowdsecBlockForm) crowdsecBlockForm.addEventListener('submit', async event => {
       event.preventDefault();
       const data = Object.fromEntries(new FormData(crowdsecBlockForm));
       const result = document.querySelector('#crowdsec-action-result');
+      const submit = crowdsecBlockForm.querySelector('[type="submit"]');
+      const csrfToken = crowdsecBlockForm.querySelector('[name="csrfmiddlewaretoken"]').value;
+      submit.disabled = true;
+      result.textContent = 'Creating CrowdSec decision…';
       try {
-        const response = await collectorFetch(`/log-collector/api/entities/${slug}/crowdsec/decisions/`, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(data)});
-        const payload = await response.json(); result.textContent = response.ok ? 'CrowdSec decision created.' : (payload.detail || 'Could not create decision.');
-        if (response.ok) { crowdsecBlockForm.reset(); loadCrowdSec(); }
-      } catch (error) { result.textContent = 'Could not create CrowdSec decision.'; }
+        const response = await collectorFetch(`/log-collector/api/entities/${slug}/crowdsec/decisions/`, {method:'POST', credentials:'same-origin', headers:{'Content-Type':'application/json', 'X-CSRFToken':csrfToken}, body:JSON.stringify(data)});
+        const payload = await response.json().catch(() => ({}));
+        if (!response.ok || payload.ok !== true) throw new Error(payload.detail || `CrowdSec decision failed (HTTP ${response.status}).`);
+        result.textContent = `CrowdSec decision created for ${payload.ip_address}.`;
+        crowdsecBlockForm.reset();
+        await loadCrowdSec();
+        changeCrowdSecTab('decisions');
+      } catch (error) {
+        result.textContent = error.message || 'Could not create CrowdSec decision.';
+      } finally {
+        submit.disabled = false;
+      }
     });
     const crowdsecPanel = document.querySelector('#crowdsec-panel');
     if (crowdsecPanel) crowdsecPanel.addEventListener('click', async event => {
@@ -1267,8 +1323,15 @@ function renderSecuritySummary(summary) {
       const button = event.target.closest('[data-crowdsec-unblock]'); if (!button) return;
       const target = button.dataset.crowdsecUnblock.replace(/^Ip:/i, '');
       if (!window.confirm(`Remove all CrowdSec decisions for ${target}?`)) return;
-      const response = await collectorFetch(`/log-collector/api/entities/${slug}/crowdsec/decisions/`, {method:'DELETE', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ip_address:target})});
-      const result = await response.json(); if (!response.ok) window.alert(result.detail || 'Could not remove decision.'); else loadCrowdSec();
+      try {
+        const csrfToken = document.querySelector('#crowdsec-block-form [name="csrfmiddlewaretoken"]')?.value;
+        const response = await collectorFetch(`/log-collector/api/entities/${slug}/crowdsec/decisions/`, {method:'DELETE', credentials:'same-origin', headers:{'Content-Type':'application/json', 'X-CSRFToken':csrfToken || ''}, body:JSON.stringify({ip_address:target})});
+        const result = await response.json().catch(() => ({}));
+        if (!response.ok) throw new Error(result.detail || `Could not remove CrowdSec decisions (HTTP ${response.status}).`);
+        await loadCrowdSec();
+      } catch (error) {
+        window.alert(error.message || 'Could not remove CrowdSec decisions.');
+      }
     });
     document.querySelectorAll('[data-security-filter]').forEach(button => button.addEventListener('click', () => changeView('access-logs', button.dataset.securityFilter)));
       {% if can_manage_blocks or can_white_flag %}
@@ -1431,8 +1494,22 @@ function renderSecuritySummary(summary) {
       }
     });
     exportButton.addEventListener('click', exportCurrentTable);
-    search.addEventListener('search', () => loadTable(1));
-    search.addEventListener('change', () => loadTable(1));
+    let searchTimer = null;
+    const searchCurrentView = () => {
+      if (tab === 'crowdsec') {
+        crowdsecPages.alerts = 0;
+        crowdsecPages.decisions = 0;
+        renderCrowdSecTable('alerts', crowdsecRows.alerts);
+        renderCrowdSecTable('decisions', crowdsecRows.decisions);
+      } else {
+        loadTable(1);
+      }
+    };
+    search.addEventListener('input', () => {
+      clearTimeout(searchTimer);
+      searchTimer = setTimeout(searchCurrentView, 200);
+    });
+    search.addEventListener('search', searchCurrentView);
   pageSize.addEventListener('change', () => loadTable(1));
   if (refreshButton) {
     refreshButton.addEventListener('click', async () => {
@@ -1460,7 +1537,21 @@ function renderSecuritySummary(summary) {
     search.value = initialQuery.get('q') || '';
     document.querySelectorAll('[data-security-filter]').forEach(button => button.setAttribute('aria-pressed', String(button.dataset.securityFilter === securityFilter)));
     loadMetrics().catch(renderMetricsUnavailable);
-    if (initialView === 'crowdsec' && document.querySelector('[data-tab="crowdsec"]')) changeView('crowdsec', securityFilter, false); else loadTable();
+    if (initialView === 'crowdsec' && document.querySelector('[data-tab="crowdsec"]')) {
+      changeView('crowdsec', securityFilter, false);
+      changeCrowdSecTab(initialQuery.get('crowdsec'), false);
+      if (initialQuery.has('q')) {
+        search.value = initialQuery.get('q') || '';
+        searchCurrentView();
+      }
+    } else if (['app-logs', 'collector-logs', 'geolocation', 'user-sessions'].includes(initialView)) {
+      changeView(initialView, securityFilter, false);
+      if (initialQuery.has('q')) {
+        search.value = initialQuery.get('q') || '';
+        loadTable(1);
+      }
+    }
+    else loadTable();
 
     let refreshPromise = null, refreshTimer = null, pollingTimer = null, reconnectTimer = null;
     let reconnectDelay = 1000, socket = null, stopped = false, refreshQueued = false;

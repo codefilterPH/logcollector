@@ -4,6 +4,9 @@ Mounting `log_collector.urls` at `/log-collector/` exposes read-only entity
 resources under `/log-collector/api/entities/<slug>/`. Resources include
 `metrics/`, `access-logs/`, `geolocation/`, `user-sessions/`, `endpoints/`, and
 `audit-events/`, subject to the entity's feature flags and caller permissions.
+The dashboard's App Logs view requests `access-logs/?source=app`, which returns
+only paths starting with `/log-collector/`; the default Access Logs response
+excludes those paths. Collector Logs uses the existing `audit-events/` feed.
 Table resources support pagination; supported resources accept `export=csv`.
 
 Generate an entity-scoped collector token as a superuser on the entity Manage
@@ -20,6 +23,9 @@ need a separate adapter.
 
 The available entity routes also include `security-summary/`,
 `security-incidents/`, `security-blocks/`, and CrowdSec status and decisions.
+CrowdSec decision creation validates the IP, duration, and reason before
+calling the configured Local API; an upstream failure returns HTTP 502 and does
+not report success.
 State-changing security endpoints require an authorized same-origin session,
 CSRF protection, and the required operator role; a read-only API token cannot
 perform those actions. An expired, revoked, mismatched, or caller-restricted

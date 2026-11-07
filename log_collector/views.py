@@ -1019,6 +1019,11 @@ class AccessLogsApi(EntityApiBase):
             return Response(remote)
         sync_entity_access_logs(entity)
         logs = entity.access_logs.all()
+        app_logs = request.GET.get("source") == "app"
+        if app_logs:
+            logs = logs.filter(path__startswith="/log-collector/")
+        else:
+            logs = logs.exclude(path__startswith="/log-collector/")
         query = request.GET.get("q", "").strip()
         if query:
             from django.db.models import Q
@@ -1473,12 +1478,15 @@ class CrowdSecDecisionsApi(CrowdSecApiBase):
             if not re.fullmatch(r"[1-9][0-9]{0,3}[smhd]", duration):
                 raise ValueError("Duration must be a number followed by s, m, h, or d.")
             reason = manual_security_reason(request.data)[:120]
+        except (TypeError, ValueError) as exc:
+            return Response({"detail": str(exc)}, status=400)
+        try:
             crowdsec_request(connection, "POST", "v1/decisions", params={
                 "duration": duration, "origin": "log_collector", "scenario": f"manual/{reason}",
                 "type": "ban", "value": f"Ip:{target}",
             })
-        except (TypeError, ValueError, CrowdSecError) as exc:
-            return Response({"detail": str(exc)}, status=400)
+        except CrowdSecError as exc:
+            return Response({"detail": f"CrowdSec rejected the decision: {exc}"}, status=502)
         audit_event(request, LogCollectorAuditEvent.EventType.API_REQUEST, entity, resource="crowdsec-decision", action="block", target_ip=target)
         return Response({"ok": True, "ip_address": target}, status=201)
 
@@ -1489,9 +1497,12 @@ class CrowdSecDecisionsApi(CrowdSecApiBase):
             return Response({"detail": "CrowdSec is not configured."}, status=409)
         try:
             target = str(parse_ip_address(request.data.get("ip_address", "")))
-            crowdsec_request(connection, "DELETE", f"v1/decisions?ip={target}")
-        except (TypeError, ValueError, CrowdSecError) as exc:
+        except (TypeError, ValueError) as exc:
             return Response({"detail": str(exc)}, status=400)
+        try:
+            crowdsec_request(connection, "DELETE", f"v1/decisions?ip={target}")
+        except CrowdSecError as exc:
+            return Response({"detail": f"CrowdSec rejected the removal: {exc}"}, status=502)
         audit_event(request, LogCollectorAuditEvent.EventType.API_REQUEST, entity, resource="crowdsec-decision", action="unblock", target_ip=target)
         return Response({"ok": True, "ip_address": target})
 
@@ -1823,9 +1834,36 @@ class AuditEventsApi(EntityApiBase):
     def get(self, request, slug):
         entity = self.get_entity(slug)
         self.authorize(request, entity, superuser=True)
+        events = entity.audit_events.select_related("user")
+        query = request.GET.get("q", "").strip()
+        if query:
+            user_query = f"user__{get_user_model().USERNAME_FIELD}__icontains"
+            events = events.filter(
+                Q(event_type__icontains=query)
+                | Q(outcome__icontains=query)
+                | Q(path__icontains=query)
+                | Q(**{user_query: query})
+                | Q(api_key_name__icontains=query)
+            )
+        if request.GET.get("export") == "csv":
+            return csv_response(
+                "audit-events.csv",
+                ["created_at", "event_type", "outcome", "path", "user", "api_key_name"],
+                (
+                    [
+                        row.created_at.isoformat(),
+                        row.event_type,
+                        row.outcome,
+                        row.path,
+                        row.user.get_username() if row.user else "",
+                        row.api_key_name,
+                    ]
+                    for row in events
+                ),
+            )
         payload = paginated_payload(
             request,
-            entity.audit_events.select_related("user"),
+            events,
             lambda row: {
                 "id": row.pk,
                 "event_type": row.event_type,

@@ -20,6 +20,15 @@ Manage page and changing collector configuration additionally requires
 `is_superuser=True`. The collector uses its own hosting entity and does not
 require the host project to have an `Organization` model.
 
+The dashboard keeps Access Logs filters separate from App Logs, which shows
+requests whose paths start with `/log-collector/`. Collector Logs shows the
+existing audit-events feed and is available to superusers. Geolocation and User
+Sessions remain separate views. CrowdSec has Detections and Blocked IP List
+sub-tabs; the selected view is stored in the URL and browser history. Creating
+a CrowdSec decision requires a signed-in superuser dashboard session and CSRF
+protection. The three activity charts share a row on wide screens and stack on
+smaller screens.
+
 Mount `log_collector.urls` before root-level slug routes such as
 `path("<slug:slug>/", ...)`; otherwise a catch-all route can capture
 `/log-collector/` before the collector receives the request.
