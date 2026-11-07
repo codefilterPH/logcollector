@@ -74,8 +74,8 @@ reserve a project name. See the [PyPI pending publisher guide](https://docs.pypi
 
 For each release, increment `project.version` in `pyproject.toml`, run package
 checks, and confirm that version is not already published. Create and push the
-matching `v<version>` tag from reviewed source. For the `0.1.4` release, use
-`v0.1.4`. Run **Publish package** for that tag with target `testpypi`; inspect
+matching `v<version>` tag from reviewed source. For example, version `0.1.5`
+uses tag `v0.1.5`. Run **Publish package** for that tag with target `testpypi`; inspect
 the uploaded distribution and verify a clean install. Then run the same
 workflow and tag with target `pypi`. Production publishing requires approval
 at the `pypi` environment gate.
