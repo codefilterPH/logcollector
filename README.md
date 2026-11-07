@@ -12,6 +12,18 @@ Install with `pip install codefilterph-logcollector`. Add `log_collector` and
 migrations. Nginx file access, ASGI, a channel layer, and Celery services are
 configured by the host project; installing the wheel does not provision them.
 
+### Dashboard access
+
+The dashboard requires a signed-in Django user who belongs to the `DATA_CENTER`
+group. A superuser must also belong to that group. Opening the hosting entity's
+Manage page and changing collector configuration additionally requires
+`is_superuser=True`. The collector uses its own hosting entity and does not
+require the host project to have an `Organization` model.
+
+Mount `log_collector.urls` before root-level slug routes such as
+`path("<slug:slug>/", ...)`; otherwise a catch-all route can capture
+`/log-collector/` before the collector receives the request.
+
 The developer guides are installed in `log_collector/docs/` inside the Python
 package and are also available in the source repository:
 

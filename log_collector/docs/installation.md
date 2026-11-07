@@ -30,8 +30,12 @@ INSTALLED_APPS += [
     "log_collector.apps.LogCollectorConfig",
 ]
 
-# In the project's urls.py:
-urlpatterns += [path("log-collector/", include("log_collector.urls"))]
+# In the project's urls.py, place this before root-level slug routes or other
+# catch-all patterns, if the host project defines them:
+urlpatterns = [
+    path("log-collector/", include("log_collector.urls")),
+    # ...the host project's remaining URL patterns...
+]
 ```
 
 Before running any Django management command, including `makemigrations` or
@@ -54,9 +58,13 @@ database schema with `python manage.py migrate`. The collector uses
 if your project needs one.
 
 Add `log_collector.middleware.SecurityIPBlockMiddleware` after Django's
-`AuthenticationMiddleware` if application-level IP blocking is wanted. Give
-authorized dashboard users membership in the `DATA_CENTER` group. A user also
-needs `is_superuser=True` to open the Manage page or change configuration.
+`AuthenticationMiddleware` if application-level IP blocking is wanted. The
+dashboard requires a signed-in user who belongs to the `DATA_CENTER` group; a
+superuser must also belong to this group. Opening the Manage page or changing
+collector configuration additionally requires `is_superuser=True`.
+
+The collector uses its own hosting entity and does not require the host
+project's `Organization` model.
 
 The default hosting entity is created on first access and has slug
 `hosting-app`. Open `/log-collector/entities/hosting-app/manage/` as a
