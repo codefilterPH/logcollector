@@ -191,7 +191,7 @@ User=<SERVICE_USER>
 Group=<SERVICE_GROUP>
 WorkingDirectory=<PROJECT_ROOT>
 EnvironmentFile=/etc/<APP_NAME>/environment
-ExecStart=<VENV>/bin/daphne -b 127.0.0.1 -p 8001 <PROJECT_PACKAGE>.asgi:application
+ExecStart=<VENV>/bin/daphne --proxy-headers -b 127.0.0.1 -p 8001 <PROJECT_PACKAGE>.asgi:application
 Restart=always
 RestartSec=5
 
