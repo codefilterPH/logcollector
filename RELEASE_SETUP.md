@@ -1,6 +1,6 @@
 # Release account setup for `codefilterph-logcollector`
 
-Use this checklist for the first public release of `codefilterph-logcollector`.
+Use this checklist for each release of `codefilterph-logcollector`.
 The public source repository is `codefilterPH/logcollector`; the installed
 Django apps remain `log_collector` and `crowdsec_integration`. PyPI rejected
 the earlier `logcollector` name as too similar to `log-collector`. Do not
@@ -72,10 +72,13 @@ reserve a project name. See the [PyPI pending publisher guide](https://docs.pypi
 
 ## 6. Run the release
 
-After both new pending publishers appear, run package checks, create
-the `v0.1.1` tag from reviewed source, and rehearse on TestPyPI. Inspect
-a clean install before running the same tag against PyPI. Production
-publishing requires approval at the `pypi` environment gate.
+For each release, increment `project.version` in `pyproject.toml`, run package
+checks, and confirm that version is not already published. Create and push the
+matching `v<version>` tag from reviewed source. For the `0.1.4` release, use
+`v0.1.4`. Run **Publish package** for that tag with target `testpypi`; inspect
+the uploaded distribution and verify a clean install. Then run the same
+workflow and tag with target `pypi`. Production publishing requires approval
+at the `pypi` environment gate.
 
 Do not manually upload the wheel: it would bypass the reviewed workflow.
 Package versions cannot be overwritten after upload; a correction needs a

@@ -2,12 +2,15 @@
 
 from datetime import timedelta
 
-from django.conf import settings
 from django.db.models import Exists, OuterRef, Q
 from django.utils import timezone
 
 from log_collector.models import BlockedIPAddress, SecurityIncident
-from log_collector.services.blocking import block_ip
+from log_collector.services.blocking import (
+    auto_block_max_evidence_age_seconds,
+    block_ip,
+    is_auto_block_enabled,
+)
 from log_collector.services.client_ip import is_trusted_security_ip
 from log_collector.services.incidents import process_security_evidence
 
@@ -38,7 +41,7 @@ def reconcile_recent_security_incidents(*, now=None, limit=100, exclude_ids=()):
     """Recover response gaps without rescanning sources or replaying attached evidence."""
     now = now or timezone.now()
     counts = {"incidents_reconciled": 0, "blocks_created": 0, "exempt": 0}
-    if limit <= 0 or not getattr(settings, "LOG_COLLECTOR_AUTO_BLOCK_ENABLED", False):
+    if limit <= 0 or not is_auto_block_enabled():
         return counts
     active_block = BlockedIPAddress.objects.filter(ip_address=OuterRef("source_ip"), desired_active=True)
     # A shared block may have moved its FK to a later incident. Its lifecycle
@@ -52,7 +55,7 @@ def reconcile_recent_security_incidents(*, now=None, limit=100, exclude_ids=()):
     ).filter(
         has_active_block=False, has_block_response=False, evidence__isnull=False,
         category__in=("malicious", "unauthorized"),
-        last_seen_at__gte=now - timedelta(seconds=settings.LOG_COLLECTOR_AUTO_BLOCK_MAX_EVIDENCE_AGE_SECONDS),
+        last_seen_at__gte=now - timedelta(seconds=auto_block_max_evidence_age_seconds()),
         last_seen_at__lte=now,
     ).exclude(pk__in=exclude_ids).order_by("last_seen_at", "pk").distinct()
     candidates = []

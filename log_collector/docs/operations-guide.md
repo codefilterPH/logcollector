@@ -1,5 +1,17 @@
 # Operations
 
+## Automatic IP blocking
+
+Automatic IP blocking is enabled by default, so the host does not need an
+enablement entry in `settings.py`. Set `LOG_COLLECTOR_AUTO_BLOCK_ENABLED` to
+`False` there to opt out. Review the trusted-IP configuration, automatic-block
+duration, evidence-age limit, and existing detection thresholds before
+production rollout. Only fresh evidence from qualifying security incidents
+can create a block. The broad path-probing rule does not trigger on repeated
+404s to one route; other security rules may still qualify. See
+[Configuration](configuration.md#automatic-ip-blocking) for the settings and
+defaults.
+
 After installation, run `python manage.py check` and `python manage.py migrate`
 with the host's settings. Confirm the web and Celery worker accounts can read
 each configured Nginx log. Mount log files read-only where possible; grant the
