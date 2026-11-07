@@ -20,6 +20,9 @@ python -c "import crowdsec_integration"
 This release requires Python 3.12–3.13 and Django 6.0.x; it is not compatible
 with Python 3.8 / Django 3.2 environments.
 
+PostgreSQL is optional. If the host project uses PostgreSQL, use version 14 or
+later, as required by Django 6.0.
+
 Add the apps and mount the HTTP URLs:
 
 ```python
