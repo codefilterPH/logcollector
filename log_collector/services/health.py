@@ -41,10 +41,12 @@ def probe_entity_health_status(entity):
     for resource, params, failure_detail in remote_health_checks(entity):
         try:
             if params is None:
-                fetch_remote_json(entity, resource)
+                response_data = fetch_remote_json(entity, resource)
             else:
-                fetch_remote_json(entity, resource, params=params)
+                response_data = fetch_remote_json(entity, resource, params=params)
         except RemoteCollectorError:
+            return {"status": "down", "label": "Down", "detail": failure_detail}
+        if not isinstance(response_data, dict):
             return {"status": "down", "label": "Down", "detail": failure_detail}
     return {
         "status": "online",

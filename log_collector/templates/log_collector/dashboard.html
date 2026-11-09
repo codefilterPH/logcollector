@@ -1564,7 +1564,7 @@ function renderSecuritySummary(summary) {
     let refreshPromise = null, refreshTimer = null, pollingTimer = null, reconnectTimer = null;
     let reconnectDelay = 1000, socket = null, stopped = false, refreshQueued = false;
     async function refreshLiveData() {
-      if (stopped) return;
+      if (stopped || document.hidden) return;
       refreshQueued = true;
       if (!refreshPromise) {
         refreshPromise = (async () => {
@@ -1580,15 +1580,19 @@ function renderSecuritySummary(summary) {
       return refreshPromise;
     }
     function debounceRefresh() {
-      if (stopped) return;
+      if (stopped || document.hidden) return;
       clearTimeout(refreshTimer);
       refreshTimer = setTimeout(() => { refreshTimer = null; refreshLiveData(); }, 300);
     }
     function startPolling() {
-      if (!stopped && !pollingTimer) pollingTimer = setInterval(refreshLiveData, 60000);
+      if (!stopped && !document.hidden && !pollingTimer) pollingTimer = setInterval(refreshLiveData, 60000);
+    }
+    function stopPolling() {
+      clearInterval(pollingTimer);
+      pollingTimer = null;
     }
     function connectSecurityEvents(refreshOnOpen = true) {
-      if (stopped || socket) return;
+      if (stopped || document.hidden || socket) return;
       startPolling();
       try {
         const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
@@ -1598,7 +1602,7 @@ function renderSecuritySummary(summary) {
           if (stopped || socket !== nextSocket) return;
           reconnectDelay = 1000;
 
-          refreshStatus.textContent = 'Live security updates connected. Refreshing metrics and table every 15 seconds.';
+          refreshStatus.textContent = 'Live security updates connected. Fallback refresh runs every 60 seconds.';
           if (refreshOnOpen) debounceRefresh();
         };
         nextSocket.onmessage = () => { if (!stopped && socket === nextSocket) debounceRefresh(); };
@@ -1611,14 +1615,29 @@ function renderSecuritySummary(summary) {
       } catch (error) { scheduleReconnect(); }
     }
     function scheduleReconnect() {
-      if (stopped) return;
+      if (stopped || document.hidden) return;
       startPolling();
-      refreshStatus.textContent = 'Live updates disconnected. Polling every 15 seconds.';
+      refreshStatus.textContent = 'Live updates disconnected. Polling every 60 seconds.';
       clearTimeout(reconnectTimer);
       reconnectTimer = setTimeout(() => { reconnectTimer = null; connectSecurityEvents(); }, reconnectDelay);
       reconnectDelay = Math.min(reconnectDelay * 2, 60000);
     }
     connectSecurityEvents();
+    document.addEventListener('visibilitychange', () => {
+      if (stopped) return;
+      if (document.hidden) {
+        refreshQueued = false;
+        stopPolling();
+        clearTimeout(refreshTimer);
+        refreshTimer = null;
+        clearTimeout(reconnectTimer);
+        reconnectTimer = null;
+        return;
+      }
+      refreshLiveData();
+      startPolling();
+      if (!socket) connectSecurityEvents(false);
+    });
     window.addEventListener('pagehide', () => {
       stopped = true;
       clearTimeout(refreshTimer); clearTimeout(reconnectTimer); clearInterval(pollingTimer);

@@ -12,6 +12,7 @@ from crowdsec_integration.models import CrowdSecConnection
 from crowdsec_integration.services import CrowdSecError, encrypt_password
 from log_collector import tasks
 from log_collector import views
+from log_collector.services import health
 from log_collector.models import (
     LogCollectorAuditEvent,
     LogCollectorEntity,
@@ -219,6 +220,37 @@ class DashboardViewsTests(TestCase):
         self.assertEqual(saved["status"], "down")
         self.assertTrue(saved["checked_at"])
 
+    def test_remote_health_probe_rejects_malformed_json_shape(self):
+        remote = LogCollectorEntity.objects.create(
+            name="Malformed health target",
+            slug="malformed-health-target",
+            entity_type=LogCollectorEntity.EntityType.INTEGRATION,
+            api_base_url="https://collector.example.test",
+            remote_api_key="test-key",
+        )
+        with patch("log_collector.services.health.fetch_remote_json", return_value=[]):
+            result = health.probe_entity_health_status(remote)
+
+        self.assertEqual(result["status"], "down")
+        self.assertEqual(result["label"], "Down")
+
+    def test_health_refresh_skips_when_another_refresh_holds_the_lock(self):
+        remote = LogCollectorEntity.objects.create(
+            name="Locked health target",
+            slug="locked-health-target",
+            entity_type=LogCollectorEntity.EntityType.INTEGRATION,
+            api_base_url="https://collector.example.test",
+            remote_api_key="test-key",
+        )
+        with (
+            patch("log_collector.services.health.cache.add", return_value=False),
+            patch("log_collector.tasks.probe_entity_health_status") as probe,
+        ):
+            result = tasks.refresh_entity_health_status.run(remote.pk)
+
+        self.assertEqual(result["status"], "in_progress")
+        probe.assert_not_called()
+
     def test_metrics_api_returns_fresh_cached_payload(self):
         expected = {"cached": True, "access_log_count": 12}
         cache.set(f"log_collector:metrics:{self.hosting.pk}", expected, timeout=10)
@@ -237,6 +269,15 @@ class DashboardViewsTests(TestCase):
 
         self.assertContains(response, "60000")
         self.assertNotContains(response, "15000")
+
+    def test_dashboard_pauses_polling_and_websocket_reconnects_when_hidden(self):
+        response = self.client.get(
+            reverse("log_collector:entity_dashboard", args=[self.hosting.slug])
+        )
+
+        self.assertContains(response, "visibilitychange")
+        self.assertContains(response, "document.hidden")
+        self.assertContains(response, "60 seconds")
 
     def test_security_analysis_is_reused_within_cache_window(self):
         cache_key = f"log_collector:security-analysis:{self.hosting.pk}"

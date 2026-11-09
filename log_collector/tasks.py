@@ -2,9 +2,11 @@
 
 import logging
 from datetime import timedelta
+from uuid import uuid4
 
 from celery import shared_task
 from django.conf import settings
+from django.core.cache import cache
 from django.db import transaction
 from django.utils import timezone
 
@@ -56,18 +58,35 @@ def refresh_entity_health_status(entity_id: int) -> dict:
     entity = LogCollectorEntity.objects.filter(pk=entity_id, is_active=True).first()
     if entity is None:
         return {"status": "not_found"}
+    lock_key = f"log_collector:health-refresh-lock:{entity_id}"
+    lock_value = uuid4().hex
+    try:
+        lock_acquired = cache.add(lock_key, lock_value, timeout=75)
+    except Exception:
+        lock_acquired = None
+    if lock_acquired is False:
+        return {"status": "in_progress"}
+
     checked_at = timezone.now()
     try:
-        result = probe_entity_health_status(entity)
-    except Exception:
-        logger.exception("Remote health refresh failed. entity_id=%s", entity_id)
-        result = {
-            "status": "down",
-            "label": "Down",
-            "detail": "Health check failed",
-        }
-    saved = save_entity_health_status(entity_id, result, checked_at=checked_at)
-    return {"status": result["status"], "saved": saved}
+        try:
+            result = probe_entity_health_status(entity)
+        except Exception:
+            logger.exception("Remote health refresh failed. entity_id=%s", entity_id)
+            result = {
+                "status": "down",
+                "label": "Down",
+                "detail": "Health check failed",
+            }
+        saved = save_entity_health_status(entity_id, result, checked_at=checked_at)
+        return {"status": result["status"], "saved": saved}
+    finally:
+        if lock_acquired:
+            try:
+                if cache.get(lock_key) == lock_value:
+                    cache.delete(lock_key)
+            except Exception:
+                pass
 
 
 def _log_failure(operation, exception):
