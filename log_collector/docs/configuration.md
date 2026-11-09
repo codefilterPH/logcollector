@@ -65,13 +65,21 @@ must also appear in the list.
 
 Configure a Celery broker, worker, and beat scheduler in the host project.
 The default queue handles `log_collector.tasks.collect_analyze_and_respond`,
-`expire_security_blocks`, and `retry_security_edge_actions`. Schedule the
-first task at the desired polling interval (five seconds in the original
-deployment) and the latter two at one-minute intervals. An `sms` queue worker
-is required when security SMS is enabled; route `queue_security_incident_sms_alert`,
-`send_security_incident_sms_chunk`, and `retry_security_incident_sms_alert` there.
-Collection can also run on dashboard/API requests, but continuous collection
-requires beat and a worker.
+`refresh_entity_health_statuses`, `expire_security_blocks`, and
+`retry_security_edge_actions`. Schedule collection at the desired polling
+interval (five seconds in the original deployment), health refresh every 60
+seconds, and block maintenance every minute. Collection runs in the scheduled
+worker; dashboard and read-API requests do not synchronize log files. See the
+[deployment guide](deployment.md) for a Beat schedule example.
+
+Configure Django's default cache with a backend shared by web and Celery
+workers. Health status, security analysis, and metrics use bounded cache
+entries; without a working cache, requests remain available but health is
+shown as checking and the read paths compute their results directly.
+
+An `sms` queue worker is required when security SMS is enabled; route
+`queue_security_incident_sms_alert`, `send_security_incident_sms_chunk`, and
+`retry_security_incident_sms_alert` there.
 
 ## Optional host integrations
 

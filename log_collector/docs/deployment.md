@@ -47,8 +47,8 @@ production. The result backend is optional for these collector tasks; omit it
 if the host does not need task results.
 
 Create the host project's Celery application and schedule the collector's
-periodic tasks. This example runs collection every five seconds and block
-maintenance every minute.
+periodic tasks. This example runs collection every five seconds, remote health
+refresh every minute, and block maintenance every minute.
 
 ```python
 # <PROJECT_PACKAGE>/celery.py
@@ -65,6 +65,10 @@ app.conf.beat_schedule = {
     "log-collector-collect": {
         "task": "log_collector.tasks.collect_analyze_and_respond",
         "schedule": 5.0,
+    },
+    "log-collector-health-refresh": {
+        "task": "log_collector.tasks.refresh_entity_health_statuses",
+        "schedule": 60.0,
     },
     "log-collector-expire-blocks": {
         "task": "log_collector.tasks.expire_security_blocks",
