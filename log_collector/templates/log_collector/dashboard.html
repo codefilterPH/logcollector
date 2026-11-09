@@ -1585,7 +1585,7 @@ function renderSecuritySummary(summary) {
       refreshTimer = setTimeout(() => { refreshTimer = null; refreshLiveData(); }, 300);
     }
     function startPolling() {
-      if (!stopped && !pollingTimer) pollingTimer = setInterval(refreshLiveData, 15000);
+      if (!stopped && !pollingTimer) pollingTimer = setInterval(refreshLiveData, 60000);
     }
     function connectSecurityEvents(refreshOnOpen = true) {
       if (stopped || socket) return;

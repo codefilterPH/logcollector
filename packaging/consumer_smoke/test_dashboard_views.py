@@ -3,12 +3,15 @@ from unittest.mock import patch
 
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Group
+from django.core.cache import cache
 from django.test import Client, TestCase
 from django.urls import reverse
 from django.utils import timezone
 
 from crowdsec_integration.models import CrowdSecConnection
 from crowdsec_integration.services import CrowdSecError, encrypt_password
+from log_collector import tasks
+from log_collector import views
 from log_collector.models import (
     LogCollectorAuditEvent,
     LogCollectorEntity,
@@ -30,6 +33,7 @@ class DashboardViewsTests(TestCase):
     def setUp(self):
         self.client = Client(enforce_csrf_checks=True)
         self.client.force_login(self.operator)
+        cache.clear()
 
     def test_access_and_app_logs_partition_log_collector_paths(self):
         common = {
@@ -130,6 +134,120 @@ class DashboardViewsTests(TestCase):
         self.assertContains(response, "grid-template-columns:repeat(3,minmax(0,1fr))")
         self.assertContains(response, "search.addEventListener('input'")
         self.assertContains(response, "url.searchParams.set('crowdsec'")
+
+    def test_entity_list_uses_cached_remote_health_without_probing(self):
+        remote = LogCollectorEntity.objects.create(
+            name="Remote system",
+            slug="remote-system",
+            entity_type=LogCollectorEntity.EntityType.INTEGRATION,
+            api_base_url="https://collector.example.test",
+            remote_api_key="test-key",
+        )
+        cache.set(
+            f"log_collector:health:{remote.pk}",
+            {
+                "status": "online",
+                "label": "Online",
+                "detail": "Cached health result",
+                "checked_at": timezone.now().isoformat(),
+            },
+            timeout=600,
+        )
+
+        with patch("log_collector.services.health.fetch_remote_json") as fetch_remote_json:
+            response = self.client.get(reverse("log_collector:entity_selection"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Cached health result")
+        fetch_remote_json.assert_not_called()
+
+    def test_entity_list_cache_miss_shows_checking_without_probing(self):
+        LogCollectorEntity.objects.create(
+            name="Unprobed remote",
+            slug="unprobed-remote",
+            entity_type=LogCollectorEntity.EntityType.INTEGRATION,
+            api_base_url="https://collector.example.test",
+            remote_api_key="test-key",
+        )
+
+        with patch("log_collector.services.health.fetch_remote_json") as fetch_remote_json:
+            response = self.client.get(reverse("log_collector:entity_selection"))
+
+        self.assertContains(response, "Checking")
+        fetch_remote_json.assert_not_called()
+
+    def test_dashboard_and_read_apis_do_not_sync_logs_in_request(self):
+        dashboard_url = reverse(
+            "log_collector:entity_dashboard", args=[self.hosting.slug]
+        )
+        metrics_url = reverse("log_collector:api_metrics", args=[self.hosting.slug])
+        access_logs_url = reverse(
+            "log_collector:api_access_logs", args=[self.hosting.slug]
+        )
+
+        with patch("log_collector.services.sync.sync_entity_access_logs") as sync_logs:
+            dashboard = self.client.get(dashboard_url)
+            metrics = self.client.get(metrics_url)
+            access_logs = self.client.get(access_logs_url)
+
+        self.assertEqual(dashboard.status_code, 200)
+        self.assertEqual(metrics.status_code, 200)
+        self.assertEqual(access_logs.status_code, 200)
+        sync_logs.assert_not_called()
+
+    def test_background_health_refresh_saves_timestamped_result(self):
+        remote = LogCollectorEntity.objects.create(
+            name="Health refresh target",
+            slug="health-refresh-target",
+            entity_type=LogCollectorEntity.EntityType.INTEGRATION,
+            api_base_url="https://collector.example.test",
+            remote_api_key="test-key",
+        )
+        cache.delete(f"log_collector:health:{remote.pk}")
+        with patch(
+            "log_collector.tasks.probe_entity_health_status",
+            return_value={
+                "status": "down",
+                "label": "Down",
+                "detail": "Metrics API unavailable",
+            },
+        ):
+            result = tasks.refresh_entity_health_status.run(remote.pk)
+
+        saved = cache.get(f"log_collector:health:{remote.pk}")
+        self.assertTrue(result["saved"])
+        self.assertEqual(saved["status"], "down")
+        self.assertTrue(saved["checked_at"])
+
+    def test_metrics_api_returns_fresh_cached_payload(self):
+        expected = {"cached": True, "access_log_count": 12}
+        cache.set(f"log_collector:metrics:{self.hosting.pk}", expected, timeout=10)
+
+        response = self.client.get(
+            reverse("log_collector:api_metrics", args=[self.hosting.slug])
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json(), expected)
+
+    def test_dashboard_fallback_polling_uses_sixty_second_cadence(self):
+        response = self.client.get(
+            reverse("log_collector:entity_dashboard", args=[self.hosting.slug])
+        )
+
+        self.assertContains(response, "60000")
+        self.assertNotContains(response, "15000")
+
+    def test_security_analysis_is_reused_within_cache_window(self):
+        cache_key = f"log_collector:security-analysis:{self.hosting.pk}"
+        self.addCleanup(cache.delete, cache_key)
+        cache.delete(cache_key)
+        with patch("log_collector.views.analyze_security", return_value={"cached": True}) as analyze:
+            first = views.local_security_analysis(self.hosting)
+            second = views.local_security_analysis(self.hosting)
+
+        self.assertEqual(first, second)
+        analyze.assert_called_once()
 
     def test_create_decision_requires_csrf_and_reports_api_failure(self):
         url = f"/log-collector/api/entities/{self.hosting.slug}/crowdsec/decisions/"

@@ -49,6 +49,7 @@ log_collector = [
     "docs/deployment.md",
     "docs/api.md",
     "docs/operations-guide.md",
+    "docs/performance-guide.md",
     "templates/log_collector/*.html",
     "static/log_collector/*.css",
 ]

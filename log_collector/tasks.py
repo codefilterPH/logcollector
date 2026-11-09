@@ -18,6 +18,7 @@ from log_collector.models import (
     SecurityIncidentSMSDelivery,
 )
 from log_collector.services.blocking import expire_blocks, retry_pending_nginx_actions
+from log_collector.services.health import probe_entity_health_status, save_entity_health_status
 from log_collector.services.incidents import IncidentProcessingResult, process_security_evidence
 from log_collector.services.response import reconcile_recent_security_incidents, respond_to_incidents
 from log_collector.services.security import DENIAL_WINDOW_SECONDS, WINDOW_MINUTES
@@ -33,6 +34,40 @@ from log_collector.services.sync import sync_entity_access_logs
 logger = logging.getLogger(__name__)
 TOKEN_USAGE_BATCH_SIZE = 5000
 BLOCK_BATCH_SIZE = 100
+
+
+@shared_task(queue="default", soft_time_limit=25, time_limit=30)
+def refresh_entity_health_statuses() -> dict:
+    entity_ids = list(
+        LogCollectorEntity.objects.filter(
+            is_active=True,
+            entity_type=LogCollectorEntity.EntityType.INTEGRATION,
+            api_base_url__gt="",
+            remote_api_key__gt="",
+        ).values_list("pk", flat=True)
+    )
+    for entity_id in entity_ids:
+        refresh_entity_health_status.delay(entity_id)
+    return {"queued": len(entity_ids)}
+
+
+@shared_task(queue="default", soft_time_limit=55, time_limit=60)
+def refresh_entity_health_status(entity_id: int) -> dict:
+    entity = LogCollectorEntity.objects.filter(pk=entity_id, is_active=True).first()
+    if entity is None:
+        return {"status": "not_found"}
+    checked_at = timezone.now()
+    try:
+        result = probe_entity_health_status(entity)
+    except Exception:
+        logger.exception("Remote health refresh failed. entity_id=%s", entity_id)
+        result = {
+            "status": "down",
+            "label": "Down",
+            "detail": "Health check failed",
+        }
+    saved = save_entity_health_status(entity_id, result, checked_at=checked_at)
+    return {"status": result["status"], "saved": saved}
 
 
 def _log_failure(operation, exception):

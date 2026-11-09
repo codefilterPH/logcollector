@@ -11,6 +11,7 @@ from django.contrib import messages
 from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import login_required
 from django.core.paginator import Paginator
+from django.core.cache import cache
 from django.db import transaction
 from django.db.models import Case, Count, IntegerField, Q, Value, When
 from django.db.models.functions import TruncDate, TruncMinute
@@ -59,14 +60,13 @@ from log_collector.services.trusted_ips import (
     is_white_flagged_ip,
     normalize_ip,
 )
+from log_collector.services.health import cached_entity_health_status
 from log_collector.services.remote import (
     RemoteCollectorError,
     fetch_remote_json,
     fetch_remote_response,
 )
 from log_collector.services.security import analyze_security
-from log_collector.services.sync import sync_entity_access_logs as sync_access_logs_only
-from log_collector.tasks import process_synced_security
 
 
 MAX_DASHBOARD_PAGE_SIZE = 1000
@@ -75,57 +75,8 @@ URL_USERNAME_KEYS = frozenset({"username", "user", "login", "email"})
 logger = logging.getLogger(__name__)
 
 
-def sync_entity_access_logs(entity):
-    """Import logs and run the bounded live security fallback for new rows."""
-    result = sync_access_logs_only(entity, process_security=False)
-    process_synced_security(entity, result)
-    return result
-
-
-def remote_health_checks(entity):
-    checks = [
-        ("metrics/", None, "Metrics API unavailable"),
-        ("access-logs/", {"page_size": 1}, "Access Logs API unavailable"),
-        ("security-summary/", None, "Security Summary API unavailable"),
-    ]
-    if entity.geolocation_enabled:
-        checks.append(("geolocation/", {"page_size": 1}, "Geolocation API unavailable"))
-    if entity.user_sessions_enabled:
-        checks.append(("user-sessions/", {"page_size": 1}, "User Sessions API unavailable"))
-    return checks
-
-
 def entity_health_status(entity):
-    if entity.is_hosting:
-        return {
-            "status": "online",
-            "label": "Online",
-            "detail": "Local collector is available",
-        }
-    if not entity.api_base_url or not entity.remote_api_key:
-        return {
-            "status": "not_configured",
-            "label": "Not configured",
-            "detail": "Remote URL or API token is missing",
-        }
-    for resource, params, failure_detail in remote_health_checks(entity):
-        try:
-            if params is None:
-                fetch_remote_json(entity, resource)
-            else:
-                fetch_remote_json(entity, resource, params=params)
-        except RemoteCollectorError:
-            return {
-                "status": "down",
-                "label": "Down",
-                "detail": failure_detail,
-            }
-    return {
-        "status": "online",
-        "label": "Online",
-        "detail": "All enabled APIs responding",
-    }
-
+    return cached_entity_health_status(entity)
 
 def entity_endpoint_descriptors(request, entity, audit_events_enabled=False):
     """Return collector endpoint details using the entity's actual destination."""
@@ -368,16 +319,30 @@ def serialize_user_session(
 
 
 def local_security_analysis(entity):
-    """Return the current in-memory security assessment for a local entity."""
+    """Return the short-lived cached security assessment for a local entity."""
+    cache_key = f"log_collector:security-analysis:{entity.pk}"
+    try:
+        cached = cache.get(cache_key)
+    except Exception:
+        cached = None
+    if cached is not None:
+        return cached
+
     cutoff = timezone.now() - timedelta(minutes=15)
     access_logs = entity.access_logs.filter(timestamp__gte=cutoff)
     user_sessions = ()
     if entity.user_sessions_enabled:
         session_model = optional_model("LOG_COLLECTOR_USER_SESSION_MODEL")
         if session_model is not None:
-            user_sessions = session_model.objects.select_related("user").filter(last_seen_at__gte=cutoff)
-    return analyze_security(access_logs=access_logs, user_sessions=user_sessions)
-
+            user_sessions = session_model.objects.select_related("user").filter(
+                last_seen_at__gte=cutoff
+            )
+    analysis = analyze_security(access_logs=access_logs, user_sessions=user_sessions)
+    try:
+        cache.set(cache_key, analysis, timeout=10)
+    except Exception:
+        pass
+    return analysis
 
 def local_security_summary(entity):
     summary = dict(local_security_analysis(entity).summary)
@@ -491,7 +456,6 @@ def entity_dashboard(request, slug):
     if not require_data_center(request, entity):
         return HttpResponseForbidden()
     if entity.is_hosting:
-        sync_entity_access_logs(entity)
         security_summary = local_security_analysis(entity).summary
     else:
         security_summary = {
@@ -523,7 +487,6 @@ def security_report(request, slug):
         return HttpResponseForbidden()
     try:
         if entity.is_hosting:
-            sync_entity_access_logs(entity)
             security_summary = local_security_analysis(entity).summary
             incidents = visible_security_incidents(
                 entity.security_incidents.annotate(evidence_count=Count("evidence"))
@@ -687,7 +650,6 @@ def entity_manage(request, slug):
         if "test_connection" in request.POST:
             try:
                 if entity.is_hosting:
-                    sync_entity_access_logs(entity)
                     return management_action_response(
                         request, True, "Local collector is available."
                     )
@@ -923,7 +885,20 @@ class EntityMetricsApi(EntityApiBase):
         if remote is not None:
             audit_event(request, LogCollectorAuditEvent.EventType.API_REQUEST, entity, resource="metrics")
             return Response(remote)
-        sync_entity_access_logs(entity)
+        metrics_cache_key = f"log_collector:metrics:{entity.pk}"
+        try:
+            cached_payload = cache.get(metrics_cache_key)
+        except Exception:
+            cached_payload = None
+        if cached_payload is not None:
+            audit_event(
+                request,
+                LogCollectorAuditEvent.EventType.API_REQUEST,
+                entity,
+                resource="metrics",
+            )
+            return Response(cached_payload)
+
         logs = entity.access_logs
         today = timezone.localdate()
         first_day = today - timedelta(days=6)
@@ -985,6 +960,10 @@ class EntityMetricsApi(EntityApiBase):
             "security_summary": local_security_summary(entity),
     }
         audit_event(request, LogCollectorAuditEvent.EventType.API_REQUEST, entity, resource="metrics")
+        try:
+            cache.set(metrics_cache_key, payload, timeout=10)
+        except Exception:
+            pass
         return Response(payload)
 
 
@@ -1013,7 +992,6 @@ class AccessLogsApi(EntityApiBase):
         if remote is not None:
             audit_event(request, LogCollectorAuditEvent.EventType.API_REQUEST, entity, resource="access-logs")
             return Response(remote)
-        sync_entity_access_logs(entity)
         logs = entity.access_logs.all()
         app_logs = request.GET.get("source") == "app"
         if app_logs:
